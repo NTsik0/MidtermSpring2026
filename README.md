@@ -40,6 +40,26 @@ draw draw a card
 scripts/test.sh
 ```
 
+## Submission
+
+Submit your work through GitHub:
+
+1. Fork this repository to your GitHub account.
+2. Clone your fork locally.
+3. Complete the midterm work in your fork.
+4. Commit your changes with clear commit messages.
+5. Push your branch to GitHub.
+6. Open a pull request from your fork back to the original repository.
+
+Your pull request must include:
+
+* refactored source code
+* characterization tests
+* `docs/refactoring-report.md`
+* `docs/extension-readiness.md`
+
+Do not submit a zip file instead of a pull request unless the instructor explicitly asks for it.
+
 ## Rules
 
 See `docs/rules.html` for the implemented game rules.
