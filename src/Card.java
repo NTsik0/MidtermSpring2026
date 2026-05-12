@@ -29,4 +29,14 @@ public class Card {
         if (r.equals("WILD") || r.equals("WILD_DRAW_FOUR")) return 50;
         return 0;
     }
+    //so this logic is duplicated 5 times inside chooseBotCard() so we gotta at this in this class and in main java just call it from this class.
+    public static boolean isLegal(String card, String upCard, String calledColor) {
+        if (card.startsWith("W")) return true;
+        if (color(card).equals(color(upCard))) return true;
+        if (!calledColor.equals("") && color(card).equals(calledColor)) return true;
+        if (rank(card).equals(rank(upCard)) && !rank(card).equals("NUMBER")) return true;
+        if (rank(card).equals("NUMBER") && rank(upCard).equals("NUMBER")
+                && number(card) == number(upCard)) return true;
+        return false;
+    }
 }
