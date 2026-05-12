@@ -8,6 +8,7 @@ public class Main {
     static ArrayList<String> playerNames = new ArrayList<String>();
     static ArrayList<Boolean> humanPlayers = new ArrayList<Boolean>();
     static ArrayList<ArrayList<String>> hands = new ArrayList<ArrayList<String>>();
+    // i will keep these 2 and the draw() method for selfTest() because test uses them
     static ArrayList<String> deck = new ArrayList<String>();
     static ArrayList<String> discard = new ArrayList<String>();
     static int[] scores = new int[10];
@@ -17,6 +18,7 @@ public class Main {
     static String calledColor = "";
     static boolean quiet = false;
     static Random random = new Random();
+    static Deck gameDeck;
     static Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) {
@@ -46,6 +48,7 @@ public class Main {
         }
 
         random = new Random(seed);
+        gameDeck = new Deck(random);
         setupPlayers(bots, human);
 
         if (playerNames.size() < 2 || playerNames.size() > 4) {
@@ -83,39 +86,20 @@ public class Main {
     }
 
     static void playGame() {
-        deck.clear();
-        String[] colors = {"R", "Y", "G", "B"};
-        for (int c = 0; c < colors.length; c++) {
-            deck.add(colors[c] + "0");
-            for (int n = 1; n <= 9; n++) {
-                deck.add(colors[c] + n);
-                deck.add(colors[c] + n);
-            }
-            deck.add(colors[c] + "S");
-            deck.add(colors[c] + "S");
-            deck.add(colors[c] + "R");
-            deck.add(colors[c] + "R");
-            deck.add(colors[c] + "+2");
-            deck.add(colors[c] + "+2");
-        }
-        for (int i = 0; i < 4; i++) {
-            deck.add("W");
-            deck.add("W4");
-        }
-        Collections.shuffle(deck, random);
+        gameDeck.build();
         discard.clear();
         for (int i = 0; i < hands.size(); i++) {
             hands.get(i).clear();
         }
         for (int i = 0; i < playerNames.size(); i++) {
             for (int j = 0; j < 7; j++) {
-                hands.get(i).add(draw());
+                hands.get(i).add(gameDeck.draw());
             }
         }
-        upCard = draw();
+        upCard = gameDeck.draw();
         while (upCard.startsWith("W")) {
-            discard.add(upCard);
-            upCard = draw();
+            gameDeck.discard(upCard);
+            upCard = gameDeck.draw();
         }
         calledColor = "";
         direction = 1;
@@ -140,7 +124,7 @@ public class Main {
             }
 
             if (chosen == -1) {
-                String drawn = draw();
+                String drawn = gameDeck.draw();
                 hand.add(drawn);
                 if (!quiet) {
                     System.out.println(name + " draws " + drawn);
@@ -163,35 +147,19 @@ public class Main {
                     if (!quiet) {
                         System.out.println(name + " selected an invalid index and draws a penalty card.");
                     }
-                    hand.add(draw());
+                    hand.add(gameDeck.draw());
                     next();
                     continue;
                 }
 
                 String card = hand.get(chosen);
-                boolean ok = false;
-                String cardColor = Card.color(card);
-                String upColor = Card.color(upCard);
-                String cardRank = Card.rank(card);
-                String upRank = Card.rank(upCard);
-
-                if (card.startsWith("W")) {
-                    ok = true;
-                } else if (cardColor.equals(upColor)) {
-                    ok = true;
-                } else if (!calledColor.equals("") && cardColor.equals(calledColor)) {
-                    ok = true;
-                } else if (cardRank.equals(upRank) && !cardRank.equals("NUMBER")) {
-                    ok = true;
-                } else if (cardRank.equals("NUMBER") && upRank.equals("NUMBER") && Card.number(card) == number(upCard)) {
-                    ok = true;
-                }
+                boolean ok = Card.isLegal(card, upCard, calledColor);
 
                 if (!ok) {
                     if (!quiet) {
                         System.out.println(name + " tried illegal card " + card + " and draws a penalty card.");
                     }
-                    hand.add(draw());
+                    hand.add(gameDeck.draw());
                     next();
                     continue;
                 }
@@ -248,8 +216,8 @@ public class Main {
                     }
                 } else if (Card.rank(card).equals("DRAW_TWO")) {
                     next();
-                    hands.get(currentPlayer).add(draw());
-                    hands.get(currentPlayer).add(draw());
+                    hands.get(currentPlayer).add(gameDeck.draw());
+                    hands.get(currentPlayer).add(gameDeck.draw());
                     if (!quiet) {
                         System.out.println(playerNames.get(currentPlayer) + " draws two.");
                     }
@@ -257,7 +225,7 @@ public class Main {
                 } else if (rank(card).equals("WILD_DRAW_FOUR")) {
                     next();
                     for (int i = 0; i < 4; i++) {
-                        hands.get(currentPlayer).add(draw());
+                        hands.get(currentPlayer).add(gameDeck.draw());
                     }
                     if (!quiet) {
                         System.out.println(playerNames.get(currentPlayer) + " draws four.");
@@ -274,7 +242,7 @@ public class Main {
             System.out.println("Game stopped at safety limit.");
         }
     }
-
+    // used by test
     static String draw() {
         if (deck.size() == 0) {
             deck.addAll(discard);
