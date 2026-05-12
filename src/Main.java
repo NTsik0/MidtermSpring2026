@@ -170,10 +170,10 @@ public class Main {
 
                 String card = hand.get(chosen);
                 boolean ok = false;
-                String cardColor = color(card);
-                String upColor = color(upCard);
-                String cardRank = rank(card);
-                String upRank = rank(upCard);
+                String cardColor = Card.color(card);
+                String upColor = Card.color(upCard);
+                String cardRank = Card.rank(card);
+                String upRank = Card.rank(upCard);
 
                 if (card.startsWith("W")) {
                     ok = true;
@@ -183,7 +183,7 @@ public class Main {
                     ok = true;
                 } else if (cardRank.equals(upRank) && !cardRank.equals("NUMBER")) {
                     ok = true;
-                } else if (cardRank.equals("NUMBER") && upRank.equals("NUMBER") && number(card) == number(upCard)) {
+                } else if (cardRank.equals("NUMBER") && upRank.equals("NUMBER") && Card.number(card) == number(upCard)) {
                     ok = true;
                 }
 
@@ -235,10 +235,10 @@ public class Main {
                     return;
                 }
 
-                if (rank(card).equals("SKIP")) {
+                if (Card.rank(card).equals("SKIP")) {
                     next();
                     next();
-                } else if (rank(card).equals("REVERSE")) {
+                } else if (Card.rank(card).equals("REVERSE")) {
                     direction = direction * -1;
                     if (playerNames.size() == 2) {
                         next();
@@ -246,7 +246,7 @@ public class Main {
                     } else {
                         next();
                     }
-                } else if (rank(card).equals("DRAW_TWO")) {
+                } else if (Card.rank(card).equals("DRAW_TWO")) {
                     next();
                     hands.get(currentPlayer).add(draw());
                     hands.get(currentPlayer).add(draw());
@@ -292,11 +292,11 @@ public class Main {
             String card = hand.get(i);
             boolean ok = false;
             if (card.startsWith("W")) ok = true;
-            else if (color(card).equals(color(upCard))) ok = true;
-            else if (!calledColor.equals("") && color(card).equals(calledColor)) ok = true;
-            else if (rank(card).equals(rank(upCard)) && !rank(card).equals("NUMBER")) ok = true;
-            else if (rank(card).equals("NUMBER") && rank(upCard).equals("NUMBER") && number(card) == number(upCard)) ok = true;
-            if (rank(card).equals("DRAW_TWO") && ok) {
+            else if (Card.color(card).equals(color(upCard))) ok = true;
+            else if (!calledColor.equals("") && Card.color(card).equals(calledColor)) ok = true;
+            else if (Card.rank(card).equals(Card.rank(upCard)) && !Card.rank(card).equals("NUMBER")) ok = true;
+            else if (Card.rank(card).equals("NUMBER") && Card.rank(upCard).equals("NUMBER") && Card.number(card) == Card.number(upCard)) ok = true;
+            if (Card.rank(card).equals("DRAW_TWO") && ok) {
                 return i;
             }
         }
@@ -304,11 +304,11 @@ public class Main {
             String card = hand.get(i);
             boolean ok = false;
             if (card.startsWith("W")) ok = true;
-            else if (color(card).equals(color(upCard))) ok = true;
-            else if (!calledColor.equals("") && color(card).equals(calledColor)) ok = true;
-            else if (rank(card).equals(rank(upCard)) && !rank(card).equals("NUMBER")) ok = true;
-            else if (rank(card).equals("NUMBER") && rank(upCard).equals("NUMBER") && number(card) == number(upCard)) ok = true;
-            if (rank(card).equals("SKIP") && ok) {
+            else if (Card.color(card).equals(Card.color(upCard))) ok = true;
+            else if (!calledColor.equals("") && Card.color(card).equals(calledColor)) ok = true;
+            else if (Card.rank(card).equals(Card.rank(upCard)) && !Card.rank(card).equals("NUMBER")) ok = true;
+            else if (Card.rank(card).equals("NUMBER") && Card.rank(upCard).equals("NUMBER") && Card.number(card) == Card.number(upCard)) ok = true;
+            if (Card.rank(card).equals("SKIP") && ok) {
                 return i;
             }
         }
@@ -316,11 +316,11 @@ public class Main {
             String card = hand.get(i);
             boolean ok = false;
             if (card.startsWith("W")) ok = true;
-            else if (color(card).equals(color(upCard))) ok = true;
-            else if (!calledColor.equals("") && color(card).equals(calledColor)) ok = true;
-            else if (rank(card).equals(rank(upCard)) && !rank(card).equals("NUMBER")) ok = true;
-            else if (rank(card).equals("NUMBER") && rank(upCard).equals("NUMBER") && number(card) == number(upCard)) ok = true;
-            if (rank(card).equals("NUMBER") && ok) {
+            else if (Card.color(card).equals(Card.color(upCard))) ok = true;
+            else if (!calledColor.equals("") && Card.color(card).equals(calledColor)) ok = true;
+            else if (Card.rank(card).equals(Card.rank(upCard)) && !Card.rank(card).equals("NUMBER")) ok = true;
+            else if (Card.rank(card).equals("NUMBER") && Card.rank(upCard).equals("NUMBER") && Card.number(card) == Card.number(upCard)) ok = true;
+            if (Card.rank(card).equals("NUMBER") && ok) {
                 return i;
             }
         }
@@ -384,7 +384,7 @@ public class Main {
         int g = 0;
         int b = 0;
         for (int i = 0; i < hand.size(); i++) {
-            String c = color(hand.get(i));
+            String c = Card.color(hand.get(i));
             if (c.equals("R")) {
                 r++;
             } else if (c.equals("Y")) {
@@ -410,75 +410,35 @@ public class Main {
         if (card.startsWith("W")) {
             return true;
         }
-        if (color(card).equals(color(up))) {
+        if (Card.color(card).equals(Card.color(up))) {
             return true;
         }
-        if (!call.equals("") && color(card).equals(call)) {
+        if (!call.equals("") && Card.color(card).equals(call)) {
             return true;
         }
-        if (rank(card).equals(rank(up)) && !rank(card).equals("NUMBER")) {
+        if (Card.rank(card).equals(Card.rank(up)) && !Card.rank(card).equals("NUMBER")) {
             return true;
         }
-        if (rank(card).equals("NUMBER") && rank(up).equals("NUMBER") && number(card) == number(up)) {
+        if (Card.rank(card).equals("NUMBER") && Card.rank(up).equals("NUMBER") && Card.number(card) == Card.number(up)) {
             return true;
         }
         return false;
     }
 
     static String color(String card) {
-        if (card.startsWith("R")) {
-            return "R";
-        }
-        if (card.startsWith("Y")) {
-            return "Y";
-        }
-        if (card.startsWith("G")) {
-            return "G";
-        }
-        if (card.startsWith("B")) {
-            return "B";
-        }
-        return "";
+        return Card.color(card);
     }
 
     static String rank(String card) {
-        if (card.equals("W")) {
-            return "WILD";
-        }
-        if (card.equals("W4")) {
-            return "WILD_DRAW_FOUR";
-        }
-        if (card.endsWith("S")) {
-            return "SKIP";
-        }
-        if (card.endsWith("R")) {
-            return "REVERSE";
-        }
-        if (card.endsWith("+2")) {
-            return "DRAW_TWO";
-        }
-        return "NUMBER";
+        return Card.rank(card);
     }
 
     static int number(String card) {
-        if (rank(card).equals("NUMBER")) {
-            return Integer.parseInt(card.substring(1));
-        }
-        return -1;
+        return Card.number(card);
     }
 
     static int points(String card) {
-        String r = rank(card);
-        if (r.equals("NUMBER")) {
-            return number(card);
-        }
-        if (r.equals("SKIP") || r.equals("REVERSE") || r.equals("DRAW_TWO")) {
-            return 20;
-        }
-        if (r.equals("WILD") || r.equals("WILD_DRAW_FOUR")) {
-            return 50;
-        }
-        return 0;
+        return Card.points(card);
     }
 
     static void next() {
@@ -504,39 +464,39 @@ public class Main {
 
     static void selfTest() {
         int passed = 0;
-        if (color("R5").equals("R")) passed++; else fail("color R5");
-        if (rank("G+2").equals("DRAW_TWO")) passed++; else fail("rank +2");
+        if (Card.color("R5").equals("R")) passed++; else fail("color R5");
+        if (Card.rank("G+2").equals("DRAW_TWO")) passed++; else fail("rank +2");
         if (points("W4") == 50) passed++; else fail("wild points");
         if (isLegal("R2", "R9", "")) passed++; else fail("same color");
         if (isLegal("G9", "R9", "")) passed++; else fail("same number");
         if (isLegal("B3", "W", "B")) passed++; else fail("called color");
         if (!isLegal("B3", "R9", "")) passed++; else fail("illegal mismatch");
         // here I am adding color() tests
-        if (color("Y5").equals("Y")) passed++; else fail("color Y5");
-        if (color("G+2").equals("G")) passed++; else fail("color G+2");
-        if (color("BS").equals("B")) passed++; else fail("color BS");
-        if (color("W").equals("")) passed++; else fail("color W is empty");
-        if (color("W4").equals("")) passed++; else fail("color W4 is empty");
+        if (Card.color("Y5").equals("Y")) passed++; else fail("color Y5");
+        if (Card.color("G+2").equals("G")) passed++; else fail("color G+2");
+        if (Card.color("BS").equals("B")) passed++; else fail("color BS");
+        if (Card.color("W").equals("")) passed++; else fail("color W is empty");
+        if (Card.color("W4").equals("")) passed++; else fail("color W4 is empty");
         // we should also add rank() tests
-        if(rank("RS").equals("SKIP")) passed++; else fail("rank RS");
-        if(rank("BR").equals("REVERSE")) passed++; else fail("rank BR");
-        if(rank("R+2").equals("DRAW_TWO")) passed++; else fail("rank R+2");
-        if(rank("W").equals("WILD")) passed++; else fail("rank W");
-        if(rank("W4").equals("WILD_DRAW_FOUR")) passed++; else fail("rank W4");
-        if(rank("R0").equals("NUMBER")) passed++; else fail("rank R0");
-        if(rank("G7").equals("NUMBER")) passed++; else fail("rank G7");
+        if(Card.rank("RS").equals("SKIP")) passed++; else fail("rank RS");
+        if(Card.rank("BR").equals("REVERSE")) passed++; else fail("rank BR");
+        if(Card.rank("R+2").equals("DRAW_TWO")) passed++; else fail("rank R+2");
+        if(Card.rank("W").equals("WILD")) passed++; else fail("rank W");
+        if(Card.rank("W4").equals("WILD_DRAW_FOUR")) passed++; else fail("rank W4");
+        if(Card.rank("R0").equals("NUMBER")) passed++; else fail("rank R0");
+        if(Card.rank("G7").equals("NUMBER")) passed++; else fail("rank G7");
         // now number() tests
-        if(number("R0") == 0) passed++; else fail("number R0");
-        if(number("G7") == 7) passed++; else fail("number G7");
-        if(number("B9") == 9) passed++; else fail("number B9");
-        if(number("RS") == -1) passed++; else fail("number of non-number card");
+        if(Card.number("R0") == 0) passed++; else fail("number R0");
+        if(Card.number("G7") == 7) passed++; else fail("number G7");
+        if(Card.number("B9") == 9) passed++; else fail("number B9");
+        if(Card.number("RS") == -1) passed++; else fail("number of non-number card");
         // and point() tests
-        if(points("R5") == 5) passed++; else fail("points R5");
-        if(points("G0") == 0) passed++; else fail("points G0");
-        if(points("BS") == 20) passed++; else fail("points BS");
-        if(points("YR") == 20) passed++; else fail("points YR");
-        if(points("R+2") == 20) passed++; else fail("points R+2");
-        if(points("W") == 50) passed++; else fail("points W");
+        if(Card.points("R5") == 5) passed++; else fail("points R5");
+        if(Card.points("G0") == 0) passed++; else fail("points G0");
+        if(Card.points("BS") == 20) passed++; else fail("points BS");
+        if(Card.points("YR") == 20) passed++; else fail("points YR");
+        if(Card.points("R+2") == 20) passed++; else fail("points R+2");
+        if(Card.points("W") == 50) passed++; else fail("points W");
         // now we have to add tests for isLegal() by 3 things, match by color, number, action type (same rank), wilds are always legal, called color rule (this is after a wild is played)
         // match by color
         if (isLegal("R9","R5","")) passed++; else fail("legal:same color");
