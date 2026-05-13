@@ -5,15 +5,12 @@ import java.util.Random;
 import java.util.Scanner;
 
 public class Main {
-    // here we gotta keep this arraylists because selfTest() uses them
-    static ArrayList<String> playerNames = new ArrayList<String>();
-    static ArrayList<Boolean> humanPlayers = new ArrayList<Boolean>();
-    static ArrayList<ArrayList<String>> hands = new ArrayList<ArrayList<String>>();
     static ArrayList<Player> players = new ArrayList<Player>();
     // i will keep these 2 and the draw() method for selfTest() because test uses them
     static ArrayList<String> deck = new ArrayList<String>();
     static ArrayList<String> discard = new ArrayList<String>();
-    static int[] scores = new int[10];
+    // I have updated it, the size now matches actual player count that is initialized in setupPlayers()
+    static int[] scores;
     static int currentPlayer = 0;
     static int direction = 1;
     static String upCard = "";
@@ -77,24 +74,21 @@ public class Main {
         players.clear();
         if (human) players.add(new Player("You", true));
         for (int i = 1; i <= bots; i++) players.add(new Player("Bot" + i, false));
-        // keep hands in sync for selfTest
-        hands.clear();
-        for (Player p : players) hands.add(p.hand);
-        playerNames.clear();
-        for (Player p : players) playerNames.add(p.name);
-        humanPlayers.clear();
-        for (Player p : players) humanPlayers.add(p.human);
+        scores = new int[players.size()]; // this is now correctly sized
+        //  this were used when there were no player class now we have player class so list became redundant.
+        //  hands.clear();
+        //  for (Player p : players) hands.add(p.hand);
+        //  playerNames.clear();
+        //  for (Player p : players) playerNames.add(p.name);
+        //  humanPlayers.clear();
+        //  for (Player p : players) humanPlayers.add(p.human);
     }
-
+    // I rewrote the code, made it shorter, it keeps only the setup and the loop, evrything that was inside here the while ( guard < 3000) loop moves into takeTurn()
     static void playGame() {
         gameDeck.build();
         for (int i = 0; i < players.size(); i++) {
             players.get(i).hand.clear();
-        }
-        for (int i = 0; i < players.size(); i++) {
-            for (int j = 0; j < 7; j++) {
-                players.get(i).hand.add(gameDeck.draw());
-            }
+            for (int j = 0; j < 7; j++) players.get(i).hand.add(gameDeck.draw());
         }
         upCard = gameDeck.draw();
         while (upCard.startsWith("W")) {
@@ -108,94 +102,82 @@ public class Main {
         int guard = 0;
         while (guard < 3000) {
             guard++;
-            String name = players.get(currentPlayer).name;
-            ArrayList<String> hand = players.get(currentPlayer).hand;
-
-            view.showUpCard(upCard, calledColor);
-            view.showHand(name, hand);
-
-            int chosen = -1;
-            if (players.get(currentPlayer).human) {
-                chosen = askHuman(hand);
-            } else {
-                chosen = chooseBotCard(hand);
-            }
-
-            if (chosen == -1) {
-                String drawn = gameDeck.draw();
-                hand.add(drawn);
-                view.showDraw(name, drawn);
-                if (isLegal(drawn, upCard, calledColor)) {
-                    if (!players.get(currentPlayer).human) {
-                        chosen = hand.size() - 1;
-                    } else {
-                        System.out.print("Play drawn card " + drawn + "? y/n: ");
-                        String answer = scanner.nextLine();
-                        if (answer.equalsIgnoreCase("y") || answer.equalsIgnoreCase("yes")) {
-                            chosen = hand.size() - 1;
-                        }
-                    }
-                }
-            }
-
-            if (chosen >= 0) {
-                if (chosen >= hand.size()) {
-                    view.showBadIndex(name);
-                    hand.add(gameDeck.draw());
-                    next();
-                    continue;
-                }
-
-                String card = hand.get(chosen);
-                boolean ok = Card.isLegal(card, upCard, calledColor);
-
-                if (!ok) {
-                    view.showPenalty(name);
-                    hand.add(gameDeck.draw());
-                    next();
-                    continue;
-                }
-
-                hand.remove(chosen);
-                gameDeck.discard(upCard);
-                upCard = card;
-                calledColor = "";
-                view.showPlay(name, card);
-
-                if (card.equals("W") || card.equals("W4")) {
-                    if (players.get(currentPlayer).human) {
-                        calledColor = askColor();
-                    } else {
-                        calledColor = chooseBotColor(hand);
-                    }
-                    view.showColorCall(name, calledColor);
-                }
-
-                if (hand.size() == 1) {
-                    view.showUno(name);
-                }
-
-                if (hand.size() == 0) {
-                    int points = 0;
-                    for (int i = 0; i < players.size(); i++) {
-                        if (i != currentPlayer) {
-                            for (int j = 0; j < players.get(i).hand.size(); j++) {
-                                points += points(players.get(i).hand.get(j));
-                            }
-                        }
-                    }
-                    scores[currentPlayer] += points;
-                    view.showWin(name, points);
-                    return;
-                }
-
-                applyEffect(card);
-
-            } else {
-                next();
-            }
+            if (takeTurn()) return;
         }
         view.showSafetyLimit();
+    }
+    // added takeTurn, bacause it returns true when someone wins, false to keep playing,
+    static boolean takeTurn() {
+        String name = players.get(currentPlayer).name;
+        ArrayList<String> hand = players.get(currentPlayer).hand;
+
+        view.showUpCard(upCard, calledColor);
+        view.showHand(name, hand);
+
+        int chosen = players.get(currentPlayer).human
+                ? askHuman(hand)
+                : chooseBotCard(hand, upCard, calledColor);
+
+        if (chosen == -1) {
+            String drawn = gameDeck.draw();
+            hand.add(drawn);
+            view.showDraw(name, drawn);
+            if (Card.isLegal(drawn, upCard, calledColor)) {
+                if (!players.get(currentPlayer).human) {
+                    chosen = hand.size() - 1;
+                } else {
+                    System.out.print("Play drawn card " + drawn + "? y/n: ");
+                    if (scanner.nextLine().equalsIgnoreCase("y")) chosen = hand.size() - 1;
+                }
+            }
+        }
+
+        if (chosen >= 0) {
+            if (chosen >= hand.size()) {
+                view.showBadIndex(name);
+                hand.add(gameDeck.draw());
+                next();
+                return false;
+            }
+            String card = hand.get(chosen);
+            if (!Card.isLegal(card, upCard, calledColor)) {
+                view.showPenalty(name);
+                hand.add(gameDeck.draw());
+                next();
+                return false;
+            }
+            hand.remove(chosen);
+            gameDeck.discard(upCard);
+            upCard = card;
+            calledColor = "";
+            view.showPlay(name, card);
+
+            if (card.equals("W") || card.equals("W4")) {
+                calledColor = players.get(currentPlayer).human
+                        ? askColor()
+                        : chooseBotColor(hand);
+                view.showColorCall(name, calledColor);
+            }
+
+            if (hand.size() == 1) view.showUno(name);
+
+            if (hand.size() == 0) {
+                int points = 0;
+                for (int i = 0; i < players.size(); i++) {
+                    if (i != currentPlayer) {
+                        for (String c : players.get(i).hand) points += Card.points(c);
+                    }
+                }
+                scores[currentPlayer] += points;
+                view.showWin(name, points);
+                return true;
+            }
+
+            applyEffect(card);
+        } else {
+            next();
+        }
+        return false;
     }
 
     static void applyEffect(String card) {
@@ -241,7 +223,7 @@ public class Main {
         return deck.remove(0);
     }
     //this down here was repeated 4 times, we rewrote if - else if - else if .... logic like this
-    static int chooseBotCard(ArrayList<String> hand) {
+    static int chooseBotCard(ArrayList<String> hand, String upCard, String calledColor) {
         // prefer draw_two
         for (int i = 0; i < hand.size(); i++) {
             String card = hand.get(i);
@@ -366,17 +348,7 @@ public class Main {
         if (currentPlayer >= players.size()) currentPlayer = 0;
         if (currentPlayer < 0) currentPlayer = players.size() - 1;
     }
-
-    static String join(ArrayList<String> cards) {
-        String out = "";
-        for (int i = 0; i < cards.size(); i++) {
-            out += i + ":" + cards.get(i);
-            if (i < cards.size() - 1) {
-                out += " ";
-            }
-        }
-        return out;
-    }
+    // removed join method and I will add this to selfTest() that calls join()
 
     static void selfTest() {
         int passed = 0;
@@ -442,35 +414,30 @@ public class Main {
         botHand1.add("RS");    // skip
         botHand1.add("R5");    // number
         botHand1.add("W");     // wild
-        upCard = "R7"; calledColor = "";
-        if (chooseBotCard(botHand1) == 0) passed++; else fail("bot prefers draw two");
+        if (chooseBotCard(botHand1, "R7", "") == 0) passed++; else fail("bot prefers draw two");
 
         ArrayList<String> botHand2 = new ArrayList<String>();
         botHand2.add("RS");    // skip - should be chosen (no draw two available)
         botHand2.add("R5");    // number
         botHand2.add("W");     // wild
-        upCard = "R7"; calledColor = "";
-        if (chooseBotCard(botHand2) == 0) passed++; else fail("bot prefers skip over number");
+        if (chooseBotCard(botHand2, "R7", "") == 0) passed++; else fail("bot prefers skip over number");
 
         ArrayList<String> botHand3 = new ArrayList<String>();
         botHand3.add("R5");    // number - should be chosen (no skip or draw two)
         botHand3.add("W");     // wild
-        upCard = "R7"; calledColor = "";
-        if (chooseBotCard(botHand3) == 0) passed++; else fail("bot prefers number over wild");
+        if (chooseBotCard(botHand3, "R7", "") == 0) passed++; else fail("bot prefers number over wild");
 
         ArrayList<String> botHand4 = new ArrayList<String>();
         botHand4.add("G3");    // illegal
         botHand4.add("W");     // wild - only legal option
-        upCard = "R7"; calledColor = "";
-        if (chooseBotCard(botHand4) == 1) passed++; else fail("bot falls back to wild");
+        if (chooseBotCard(botHand4, "R7", "") == 1) passed++; else fail("bot falls back to wild");
 
         ArrayList<String> botHand5 = new ArrayList<String>();
         botHand5.add("G3");    // illegal
         botHand5.add("B7");    // illegal
-        upCard = "R5"; calledColor = "";
-        if (chooseBotCard(botHand5) == -1) passed++; else fail("bot returns -1 when no legal card");
+        if (chooseBotCard(botHand5, "R5", "") == -1) passed++; else fail("bot returns -1 when no legal card");
 
-        // now what color bot chooses: picks the color it has most one of all colors
+        // now what color bot chooses: picks the color it has most of
         ArrayList<String> colorHand = new ArrayList<String>();
         colorHand.add("R1"); colorHand.add("R2"); colorHand.add("R3"); // 3 reds
         colorHand.add("G1"); colorHand.add("G2");                       // 2 greens
@@ -498,7 +465,7 @@ public class Main {
         // quirk: join() format is "index:card index:card"
         ArrayList<String> joinTest = new ArrayList<String>();
         joinTest.add("R5"); joinTest.add("W");
-        if (join(joinTest).equals("0:R5 1:W")) passed++; else fail("join format");
+        if (GameView.join(joinTest).equals("0:R5 1:W")) passed++; else fail("join format");
 
 
         ArrayList<String> tieHand = new ArrayList<String>();
@@ -510,9 +477,7 @@ public class Main {
         h.add("B3");
         h.add("R4");
         h.add("W");
-        upCard = "R9";
-        calledColor = "";
-        if (chooseBotCard(h) == 1) passed++; else fail("bot normal before wild");
+        if (chooseBotCard(h, "R9", "") == 1) passed++; else fail("bot normal before wild");
 
         ArrayList<String> h2 = new ArrayList<String>();
         h2.add("B1");

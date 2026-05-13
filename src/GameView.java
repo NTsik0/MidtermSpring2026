@@ -79,8 +79,8 @@ public class GameView {
             System.out.println(players.get(i).name + ": " + scores[i]);
         }
     }
-
-    private String join(ArrayList<String> cards) {
+    // I had this private but now I update it to static String join....
+     static String join(ArrayList<String> cards) {
         String out = "";
         for (int i = 0; i < cards.size(); i++) {
             out += i + ":" + cards.get(i);
