@@ -22,6 +22,7 @@ public class Main {
     static Random random = new Random();
     static Deck gameDeck;
     static Scanner scanner = new Scanner(System.in);
+    static GameView view;
 
     public static void main(String[] args) {
         int bots = 3;
@@ -51,6 +52,7 @@ public class Main {
 
         random = new Random(seed);
         gameDeck = new Deck(random);
+        view = new GameView(quiet);
         setupPlayers(bots, human);
 
         if (players.size() < 2 || players.size() > 4) {
@@ -109,10 +111,8 @@ public class Main {
             String name = players.get(currentPlayer).name;
             ArrayList<String> hand = players.get(currentPlayer).hand;
 
-            if (!quiet) {
-                System.out.println("\nUp card: " + upCard + (calledColor.equals("") ? "" : " called " + calledColor));
-                System.out.println(name + " hand: " + join(hand));
-            }
+            view.showUpCard(upCard, calledColor);
+            view.showHand(name, hand);
 
             int chosen = -1;
             if (players.get(currentPlayer).human) {
@@ -124,9 +124,7 @@ public class Main {
             if (chosen == -1) {
                 String drawn = gameDeck.draw();
                 hand.add(drawn);
-                if (!quiet) {
-                    System.out.println(name + " draws " + drawn);
-                }
+                view.showDraw(name, drawn);
                 if (isLegal(drawn, upCard, calledColor)) {
                     if (!players.get(currentPlayer).human) {
                         chosen = hand.size() - 1;
@@ -142,9 +140,7 @@ public class Main {
 
             if (chosen >= 0) {
                 if (chosen >= hand.size()) {
-                    if (!quiet) {
-                        System.out.println(name + " selected an invalid index and draws a penalty card.");
-                    }
+                    view.showBadIndex(name);
                     hand.add(gameDeck.draw());
                     next();
                     continue;
@@ -154,9 +150,7 @@ public class Main {
                 boolean ok = Card.isLegal(card, upCard, calledColor);
 
                 if (!ok) {
-                    if (!quiet) {
-                        System.out.println(name + " tried illegal card " + card + " and draws a penalty card.");
-                    }
+                    view.showPenalty(name);
                     hand.add(gameDeck.draw());
                     next();
                     continue;
@@ -166,9 +160,7 @@ public class Main {
                 gameDeck.discard(upCard);
                 upCard = card;
                 calledColor = "";
-                if (!quiet) {
-                    System.out.println(name + " plays " + card);
-                }
+                view.showPlay(name, card);
 
                 if (card.equals("W") || card.equals("W4")) {
                     if (players.get(currentPlayer).human) {
@@ -176,13 +168,11 @@ public class Main {
                     } else {
                         calledColor = chooseBotColor(hand);
                     }
-                    if (!quiet) {
-                        System.out.println(name + " calls " + calledColor);
-                    }
+                    view.showColorCall(name, calledColor);
                 }
 
-                if (hand.size() == 1 && !quiet) {
-                    System.out.println(name + " says UNO!");
+                if (hand.size() == 1) {
+                    view.showUno(name);
                 }
 
                 if (hand.size() == 0) {
@@ -195,49 +185,47 @@ public class Main {
                         }
                     }
                     scores[currentPlayer] += points;
-                    if (!quiet) {
-                        System.out.println(name + " wins and scores " + points);
-                    }
+                    view.showWin(name, points);
                     return;
                 }
 
-                if (Card.rank(card).equals("SKIP")) {
-                    next();
-                    next();
-                } else if (Card.rank(card).equals("REVERSE")) {
-                    direction = direction * -1;
-                    if (players.size() == 2) {
-                        next();
-                        next();
-                    } else {
-                        next();
-                    }
-                } else if (Card.rank(card).equals("DRAW_TWO")) {
-                    next();
-                    players.get(currentPlayer).hand.add(gameDeck.draw());
-                    players.get(currentPlayer).hand.add(gameDeck.draw());
-                    if (!quiet) {
-                        System.out.println(players.get(currentPlayer).name + " draws two.");
-                    }
-                    next();
-                } else if (Card.rank(card).equals("WILD_DRAW_FOUR")) {
-                    next();
-                    for (int i = 0; i < 4; i++) {
-                        players.get(currentPlayer).hand.add(gameDeck.draw());
-                    }
-                    if (!quiet) {
-                        System.out.println(players.get(currentPlayer).name + " draws four.");
-                    }
-                    next();
-                } else {
-                    next();
-                }
+                applyEffect(card);
+
             } else {
                 next();
             }
         }
-        if (!quiet) {
-            System.out.println("Game stopped at safety limit.");
+        view.showSafetyLimit();
+    }
+
+    static void applyEffect(String card) {
+        String r = Card.rank(card);
+        if (r.equals("SKIP")) {
+            next();
+            next();
+        } else if (r.equals("REVERSE")) {
+            direction = direction * -1;
+            if (players.size() == 2) {
+                next();
+                next();
+            } else {
+                next();
+            }
+        } else if (r.equals("DRAW_TWO")) {
+            next();
+            players.get(currentPlayer).hand.add(gameDeck.draw());
+            players.get(currentPlayer).hand.add(gameDeck.draw());
+            view.showDrawTwo(players.get(currentPlayer).name);
+            next();
+        } else if (r.equals("WILD_DRAW_FOUR")) {
+            next();
+            for (int i = 0; i < 4; i++) {
+                players.get(currentPlayer).hand.add(gameDeck.draw());
+            }
+            view.showDrawFour(players.get(currentPlayer).name);
+            next();
+        } else {
+            next();
         }
     }
     // used by test
