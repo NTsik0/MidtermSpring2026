@@ -18,7 +18,6 @@ public class Main {
     static boolean quiet = false;
     static Random random = new Random();
     static Deck gameDeck;
-    static Scanner scanner = new Scanner(System.in);
     static GameView view;
 
     public static void main(String[] args) {
@@ -58,16 +57,11 @@ public class Main {
         }
 
         for (int g = 1; g <= games; g++) {
-            if (!quiet) {
-                System.out.println("\n=== Game " + g + " ===");
-            }
+            view.showGameHeader(g);
             playGame();
         }
 
-        System.out.println("\nFinal scores:");
-        for (int i = 0; i < players.size(); i++) {
-            System.out.println(players.get(i).name + ": " + scores[i]);
-        }
+        view.showFinalScores(players, scores);
     }
 
     static void setupPlayers(int bots, boolean human) {
@@ -115,8 +109,8 @@ public class Main {
         view.showHand(name, hand);
 
         int chosen = players.get(currentPlayer).human
-                ? askHuman(hand)
-                : chooseBotCard(hand, upCard, calledColor);
+                ? view.askHuman(hand, upCard, calledColor)
+                : players.get(currentPlayer).chooseCard(upCard, calledColor);
 
         if (chosen == -1) {
             String drawn = gameDeck.draw();
@@ -127,7 +121,7 @@ public class Main {
                     chosen = hand.size() - 1;
                 } else {
                     System.out.print("Play drawn card " + drawn + "? y/n: ");
-                    if (scanner.nextLine().equalsIgnoreCase("y")) chosen = hand.size() - 1;
+                    if (view.askYesNo()) chosen = hand.size() - 1;
                 }
             }
         }
@@ -154,8 +148,8 @@ public class Main {
 
             if (card.equals("W") || card.equals("W4")) {
                 calledColor = players.get(currentPlayer).human
-                        ? askColor()
-                        : chooseBotColor(hand);
+                        ? view.askColor()
+                        : players.get(currentPlayer).chooseColor();
                 view.showColorCall(name, calledColor);
             }
 
@@ -249,51 +243,7 @@ public class Main {
         return -1;
     }
 
-    static int askHuman(ArrayList<String> hand) {
-        while (true) {
-            System.out.print("Choose card index/code or draw: ");
-            String input = scanner.nextLine().trim().toUpperCase();
-            if (input.equals("DRAW")) {
-                return -1;
-            }
-            try {
-                int index = Integer.parseInt(input);
-                if (index >= 0 && index < hand.size()) {
-                    return index;
-                }
-            } catch (Exception ignored) {
-            }
-            for (int i = 0; i < hand.size(); i++) {
-                if (hand.get(i).equals(input)) {
-                    if (isLegal(hand.get(i), upCard, calledColor)) {
-                        return i;
-                    }
-                    System.out.println("That card is not legal.");
-                }
-            }
-            System.out.println("Card not found.");
-        }
-    }
 
-    static String askColor() {
-        while (true) {
-            System.out.print("Call color R/Y/G/B: ");
-            String input = scanner.nextLine().trim().toUpperCase();
-            if (input.equals("R")) {
-                return "R";
-            }
-            if (input.equals("Y")) {
-                return "Y";
-            }
-            if (input.equals("G")) {
-                return "G";
-            }
-            if (input.equals("B")) {
-                return "B";
-            }
-            System.out.println("Bad color.");
-        }
-    }
 
     static String chooseBotColor(ArrayList<String> hand) {
         int r = 0;
