@@ -364,45 +364,41 @@ public class Main {
         if (!isLegal("R3", "W", "G")) passed++; else fail("illegal: wrong color on called color");
 
         // here we gotta add tests for bot behaviour quirks
-        // bot prefers draw_two over skip over number over wild then
-        ArrayList<String> botHand1 = new ArrayList<String>();
-        botHand1.add("R+2");   // draw two - should be chosen first
-        botHand1.add("RS");    // skip
-        botHand1.add("R5");    // number
-        botHand1.add("W");     // wild
-        if (chooseBotCard(botHand1, "R7", "") == 0) passed++; else fail("bot prefers draw two");
+        // bot prefers draw_two over skip over number over wild
+        Player bot1 = new Player("test", false);
+        bot1.hand.add("R+2");
+        bot1.hand.add("RS");
+        bot1.hand.add("R5");
+        bot1.hand.add("W");
+        if (bot1.chooseCard("R7", "") == 0) passed++; else fail("bot prefers draw two");
 
-        ArrayList<String> botHand2 = new ArrayList<String>();
-        botHand2.add("RS");    // skip - should be chosen (no draw two available)
-        botHand2.add("R5");    // number
-        botHand2.add("W");     // wild
-        if (chooseBotCard(botHand2, "R7", "") == 0) passed++; else fail("bot prefers skip over number");
+        Player bot2 = new Player("test", false);
+        bot2.hand.add("RS");
+        bot2.hand.add("R5");
+        bot2.hand.add("W");
+        if (bot2.chooseCard("R7", "") == 0) passed++; else fail("bot prefers skip over number");
 
-        ArrayList<String> botHand3 = new ArrayList<String>();
-        botHand3.add("R5");    // number - should be chosen (no skip or draw two)
-        botHand3.add("W");     // wild
-        if (chooseBotCard(botHand3, "R7", "") == 0) passed++; else fail("bot prefers number over wild");
+        Player bot3 = new Player("test", false);
+        bot3.hand.add("R5");
+        bot3.hand.add("W");
+        if (bot3.chooseCard("R7", "") == 0) passed++; else fail("bot prefers number over wild");
 
-        ArrayList<String> botHand4 = new ArrayList<String>();
-        botHand4.add("G3");    // illegal
-        botHand4.add("W");     // wild - only legal option
-        if (chooseBotCard(botHand4, "R7", "") == 1) passed++; else fail("bot falls back to wild");
+        Player bot4 = new Player("test", false);
+        bot4.hand.add("G3");
+        bot4.hand.add("W");
+        if (bot4.chooseCard("R7", "") == 1) passed++; else fail("bot falls back to wild");
 
-        ArrayList<String> botHand5 = new ArrayList<String>();
-        botHand5.add("G3");    // illegal
-        botHand5.add("B7");    // illegal
-        if (chooseBotCard(botHand5, "R5", "") == -1) passed++; else fail("bot returns -1 when no legal card");
+        Player bot5 = new Player("test", false);
+        bot5.hand.add("G3");
+        bot5.hand.add("B7");
+        if (bot5.chooseCard("R5", "") == -1) passed++; else fail("bot returns -1 when no legal card");
 
-        // now what color bot chooses: picks the color it has most of
-        ArrayList<String> colorHand = new ArrayList<String>();
-        colorHand.add("R1"); colorHand.add("R2"); colorHand.add("R3"); // 3 reds
-        colorHand.add("G1"); colorHand.add("G2");                       // 2 greens
-        if (chooseBotColor(colorHand).equals("R")) passed++; else fail("bot color: most common");
+        Player colorBot1 = new Player("test", false);
+        colorBot1.hand.add("R1"); colorBot1.hand.add("R2"); colorBot1.hand.add("R3");
+        colorBot1.hand.add("G1"); colorBot1.hand.add("G2");
+        if (colorBot1.chooseColor().equals("R")) passed++; else fail("bot color: most common");
 
-        // now I add quirk tests as asked to test quirks.
-        // quirk: illegal index input (not code) causes penalty + turn loss
-        // test this through isLegal indirectly - the game loop penalize, a valid index that points to an illegal card.
-        // test the scoring math directly, if opponent holds R5(5) + GS(20) + W(50) = 75 points
+        // scoring math
         ArrayList<String> loserHand = new ArrayList<String>();
         loserHand.add("R5");
         loserHand.add("GS");
@@ -411,45 +407,42 @@ public class Main {
         for (String c : loserHand) totalPoints += points(c);
         if (totalPoints == 75) passed++; else fail("scoring: 5+20+50=75");
 
-        // quirk: deck fallback - if both deck and discard are empty, returns "W"
+        // legacy draw() fallback
         deck.clear(); discard.clear();
         String fallback = draw();
         if (fallback.equals("W")) passed++; else fail("draw fallback returns W");
-        // restore state
         deck.clear(); discard.clear();
 
-        // quirk: join() format is "index:card index:card"
+        // join format
         ArrayList<String> joinTest = new ArrayList<String>();
         joinTest.add("R5"); joinTest.add("W");
         if (GameView.join(joinTest).equals("0:R5 1:W")) passed++; else fail("join format");
 
+        Player tieBot = new Player("test", false);
+        tieBot.hand.add("B1"); tieBot.hand.add("Y1");
+        if (tieBot.chooseColor().equals("Y")) passed++; else fail("bot color tie: Y wins if equal");
 
-        ArrayList<String> tieHand = new ArrayList<String>();
-        tieHand.add("B1"); tieHand.add("Y1"); // tie - R wins per the if-chain
-        if (chooseBotColor(tieHand).equals("Y")) passed++; else fail("bot color tie: Y wins if equal");
+        Player normalBot = new Player("test", false);
+        normalBot.hand.add("B3");
+        normalBot.hand.add("R4");
+        normalBot.hand.add("W");
+        if (normalBot.chooseCard("R9", "") == 1) passed++; else fail("bot normal before wild");
 
+        Player colorBot2 = new Player("test", false);
+        colorBot2.hand.add("B1");
+        colorBot2.hand.add("B2");
+        colorBot2.hand.add("R3");
+        if (colorBot2.chooseColor().equals("B")) passed++; else fail("bot color");
 
-        ArrayList<String> h = new ArrayList<String>();
-        h.add("B3");
-        h.add("R4");
-        h.add("W");
-        if (chooseBotCard(h, "R9", "") == 1) passed++; else fail("bot normal before wild");
-
-        ArrayList<String> h2 = new ArrayList<String>();
-        h2.add("B1");
-        h2.add("B2");
-        h2.add("R3");
-        if (chooseBotColor(h2).equals("B")) passed++; else fail("bot color");
-        // two new tests added
-        // test deck.java fallback straightly through deck instance
+        // Deck.java fallback
         Deck testDeck = new Deck(new Random(42));
         if (testDeck.draw().equals("W")) passed++; else fail("Deck.draw fallback returns W");
 
-        // characterization of wild quirk: bot plays wild without isLegal guard
-        ArrayList<String> wildQuirk = new ArrayList<String>();
-        wildQuirk.add("G3");
-        wildQuirk.add("W");
-        if ( chooseBotCard(wildQuirk, "R5", "") == 1 ) passed++;
+        // wild quirk: bot plays wild without isLegal guard
+        Player wildBot = new Player("test", false);
+        wildBot.hand.add("G3");
+        wildBot.hand.add("W");
+        if (wildBot.chooseCard("R5", "") == 1) passed++;
         else fail("bot wild quirk: no isLegal guard on wild");
         System.out.println("Passed " + passed + " characterization checks.");
     }

@@ -2,7 +2,7 @@
 
 ## What behavior did you characterize before refactoring?
 
-I expanded selfTest() from 9 checks to 56 checks including:
+I expanded selfTest() from 9 checks to 58 checks including:
 - color(), rank(), number(), points() for all card types including wilds and action cards
 - isLegal() for color match, number match, action type match,
   wild always legal, called color rule, and illegal mismatches
@@ -45,6 +45,8 @@ I expanded selfTest() from 9 checks to 56 checks including:
 10. Added two new tests: I added 2 new characterization tests, Deck.draw() fallback now tested through a Deck directly,
    previously it was done by static draw() methods in Main, and also the bot wild quirk where wild fallback loop has no isLegal
    guard, meaning bot always plays a wild if it holds one no matter if it holds legal card or not.
+11. Removed chooseBotCard() and chooseBotColor() from Main.java entirely. selfTest() now calls bot logic through Player instances,
+   so Player methods are directly tested by tests.
    
 Each step was done separately and tests were run after each one to confirm
    nothing broke before moving on.
@@ -62,13 +64,10 @@ Each step was done separately and tests were run after each one to confirm
 - 
 ## What risks remain?
 
-- selfTest() still uses the old static deck/discard lists and the legacy
-  draw() method, so the deck fallback is not tested through Deck.java.
 - Global state (currentPlayer, direction, upCard, calledColor) is still in
-  Main. I could have created a seperated, new Game class that would fix this 
-  but it would have been a really big restructure that needs a lot more test coverages.
-- Scoring is still mixed with game completion inside takeTurn(). Separating it would require the same things that
-  I previously said, creating a new Game class.
-- applyEffect() is still a chain of if/else if blocks. Replacing it with a cleaner structure would need 
-  more tests around each effect first.
-- Human input (askYesNo, askColor) cannot be tested without live Scanner input.n, so live scanner is in action.
+  Main. Creating a separate Game class would fix this but would require
+  a much larger restructure with more test coverage first.
+- applyEffect() is still a chain of if/else if blocks. Replacing it with a
+  cleaner structure would need more tests around each effect first.
+- Human input (askYesNo, askColor) cannot be tested without live Scanner
+  input, so those paths remain untested.
