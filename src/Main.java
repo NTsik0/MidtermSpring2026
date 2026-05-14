@@ -156,12 +156,8 @@ public class Main {
             if (hand.size() == 1) view.showUno(name);
 
             if (hand.size() == 0) {
-                int points = 0;
-                for (int i = 0; i < players.size(); i++) {
-                    if (i != currentPlayer) {
-                        for (String c : players.get(i).hand) points += Card.points(c);
-                    }
-                }
+                // new methods countpoints added.
+                int points = countPoints();
                 scores[currentPlayer] += points;
                 view.showWin(name, points);
                 return true;
@@ -172,6 +168,16 @@ public class Main {
             next();
         }
         return false;
+    }
+    // new methods countpoints.
+    static int countPoints(){
+        int points = 0;
+        for ( int i = 0; i < players.size(); i++){
+            if (i != currentPlayer){
+                for (String c : players.get(i).hand) points += Card.points(c);
+            }
+        }
+        return points;
     }
 
     static void applyEffect(String card) {
