@@ -440,7 +440,17 @@ public class Main {
         h2.add("B2");
         h2.add("R3");
         if (chooseBotColor(h2).equals("B")) passed++; else fail("bot color");
+        // two new tests added
+        // test deck.java fallback straightly through deck instance
+        Deck testDeck = new Deck(new Random(42));
+        if (testDeck.draw().equals("W")) passed++; else fail("Deck.draw fallback returns W");
 
+        // characterization of wild quirk: bot plays wild without isLegal guard
+        ArrayList<String> wildQuirk = new ArrayList<String>();
+        wildQuirk.add("G3");
+        wildQuirk.add("W");
+        if ( chooseBotCard(wildQuirk, "R5", "") == 1 ) passed++;
+        else fail("bot wild quirk: no isLegal guard on wild");
         System.out.println("Passed " + passed + " characterization checks.");
     }
 
