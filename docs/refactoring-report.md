@@ -40,6 +40,11 @@ I expanded selfTest() from 9 checks to 56 checks including:
 6. Extract Method: takeTurn() - separated single turn logic from the game loop
 7. Move Method: chooseCard() and chooseColor() moved from Main to Player.java
 8. Move Method: askHuman(), askColor(), askYesNo() moved from Main to GameView.java
+9. Extracted method: countPoints() - I have seperated scoring calculation from game completion detection inside takeTurn()
+   They were written in the same block, and it was kind of unclear where scoring ended and where was win detection beginning.
+10. Added two new tests: I added 2 new characterization tests, Deck.draw() fallback now tested through a Deck directly,
+   previously it was done by static draw() methods in Main, and also the bot wild quirk where wild fallback loop has no isLegal
+   guard, meaning bot always plays a wild if it holds one no matter if it holds legal card or not.
    
 Each step was done separately and tests were run after each one to confirm
    nothing broke before moving on.
