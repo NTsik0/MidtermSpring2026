@@ -1,3 +1,7 @@
 out/
 .idea/
 *.iml
+target/
+maven.zip
+src/test/java/desktop.ini
+*.class
