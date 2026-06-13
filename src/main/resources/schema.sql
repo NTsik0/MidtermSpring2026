@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS players (
+    id   INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS games (
+    id         INTEGER PRIMARY KEY AUTO_INCREMENT,
+    started_at TIMESTAMP NOT NULL,
+    ended_at   TIMESTAMP,
+    rounds     INTEGER DEFAULT 0,
+    winner     VARCHAR(100)
+);
+
+CREATE TABLE IF NOT EXISTS game_scores (
+    id        INTEGER PRIMARY KEY AUTO_INCREMENT,
+    game_id   INTEGER NOT NULL,
+    player    VARCHAR(100) NOT NULL,
+    score     INTEGER DEFAULT 0,
+    FOREIGN KEY (game_id) REFERENCES games(id)
+);

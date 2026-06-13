@@ -5,3 +5,5 @@ target/
 maven.zip
 src/test/java/desktop.ini
 *.class
+uno-data.mv.db
+dependency-reduced-pom.xml

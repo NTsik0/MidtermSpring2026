@@ -1,5 +1,7 @@
 import java.util.logging.Logger;
 import java.util.logging.Level;
+import persistence.Database;
+import persistence.GameRepository;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,8 +43,12 @@ public class Main {
             } else if (args[i].equals("--self-test")) {
                 selfTest();
                 return;
+            } else if (args[i].equals("--stats")) {
+                Database.getFactory();
+                showStats();
+                return;
             } else if (args[i].equals("--help")) {
-                System.out.println("Usage: scripts/run.sh [--bots N] [--games N] [--human] [--quiet] [--seed N]");
+                System.out.println("Usage: java -jar uno-cli.jar [--bots N] [--games N] [--human] [--quiet] [--seed N] [--stats]");
                 return;
             }
         }
@@ -58,6 +64,7 @@ public class Main {
         }
 
         logger.info("Starting UNO with " + games + " game(s) and " + players.size() + " players.");
+        Database.getFactory();
 
         for (int g = 1; g <= games; g++) {
             view.showGameHeader(g);
@@ -77,6 +84,7 @@ public class Main {
 
     static void playGame() {
         logger.info("Game started with " + players.size() + " players.");
+        java.sql.Timestamp startedAt = new java.sql.Timestamp(System.currentTimeMillis());
         gameDeck.build();
         for (int i = 0; i < players.size(); i++) {
             players.get(i).hand.clear();
@@ -94,10 +102,51 @@ public class Main {
         int guard = 0;
         while (guard < 3000) {
             guard++;
-            if (takeTurn()) return;
+            if (takeTurn()) {
+                saveGameResult(startedAt, guard);
+                return;
+            }
         }
         logger.warning("Game stopped at safety limit.");
         view.showSafetyLimit();
+        saveGameResult(startedAt, 3000);
+    }
+
+    static void saveGameResult(java.sql.Timestamp startedAt, int rounds) {
+        try {
+            GameRepository repo = new GameRepository();
+            java.sql.Timestamp endedAt = new java.sql.Timestamp(System.currentTimeMillis());
+            String winner = players.get(currentPlayer).name;
+            int gameId = repo.saveGame(startedAt, endedAt, rounds, winner);
+            for (int i = 0; i < players.size(); i++) {
+                repo.saveScore(gameId, players.get(i).name, scores[i]);
+            }
+            logger.info("Game result saved to database. Winner: " + winner);
+        } catch (Exception e) {
+            logger.warning("Could not save game result: " + e.getMessage());
+        }
+    }
+
+    static void showStats() {
+        GameRepository repo = new GameRepository();
+
+        System.out.println("\n=== Recent Games ===");
+        for (java.util.Map<String, Object> row : repo.getRecentGames()) {
+            System.out.println("Game #" + row.get("ID") +
+                " | Winner: " + row.get("WINNER") +
+                " | Rounds: " + row.get("ROUNDS") +
+                " | Ended: " + row.get("ENDED_AT"));
+        }
+
+        System.out.println("\n=== Player Win Count ===");
+        for (java.util.Map<String, Object> row : repo.getPlayerWinCount()) {
+            System.out.println(row.get("WINNER") + ": " + row.get("WINS") + " wins");
+        }
+
+        System.out.println("\n=== Highest Scores ===");
+        for (java.util.Map<String, Object> row : repo.getHighestScores()) {
+            System.out.println(row.get("PLAYER") + ": " + row.get("TOTAL_SCORE") + " points");
+        }
     }
 
     static boolean takeTurn() {

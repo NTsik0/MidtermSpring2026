@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="persistence.GameMapper">
+
+    <insert id="insertGame" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO games (started_at, ended_at, rounds, winner)
+        VALUES (#{startedAt}, #{endedAt}, #{rounds}, #{winner})
+    </insert>
+
+    <insert id="insertScore">
+        INSERT INTO game_scores (game_id, player, score)
+        VALUES (#{gameId}, #{player}, #{score})
+    </insert>
+
+    <select id="recentGames" resultType="map">
+        SELECT id, started_at, ended_at, rounds, winner
+        FROM games
+        ORDER BY started_at DESC
+        LIMIT 10
+    </select>
+
+    <select id="playerWinCount" resultType="map">
+        SELECT winner, COUNT(*) as wins
+        FROM games
+        WHERE winner IS NOT NULL
+        GROUP BY winner
+        ORDER BY wins DESC
+    </select>
+
+    <select id="highestScores" resultType="map">
+        SELECT player, SUM(score) as total_score
+        FROM game_scores
+        GROUP BY player
+        ORDER BY total_score DESC
+        LIMIT 10
+    </select>
+
+</mapper>
