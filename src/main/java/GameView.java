@@ -46,6 +46,11 @@ public class GameView {
         System.out.println(playerName + " says UNO!");
     }
 
+    public void showUnoPenalty(String playerName) {
+        if (quiet) return;
+        System.out.println(playerName + " forgot to say UNO and draws 2 penalty cards!");
+    }
+
     public void showWin(String playerName, int points) {
         if (quiet) return;
         System.out.println(playerName + " wins and scores " + points);
