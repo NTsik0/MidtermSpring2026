@@ -6,13 +6,20 @@ import java.util.Random;
 
 public class UnoRulesTest {
 
-    //  DECK COMPOSITION TESTS 
+    //  DECK COMPOSITION TESTS
+
+    private ArrayList<String> drawFullDeck() {
+        Deck d = new Deck(new Random(1));
+        d.build();
+        ArrayList<String> all = new ArrayList<>();
+        for (int i = 0; i < 108; i++) all.add(d.draw());
+        return all;
+    }
 
     @Test
     public void testDeckHasFourColors() {
         Deck d = new Deck(new Random(1));
         d.build();
-        // deck builds without error and draws colored cards
         String card = d.draw();
         assertNotNull(card);
     }
@@ -52,6 +59,38 @@ public class UnoRulesTest {
     @Test
     public void testDeckHasWildDrawFourCards() {
         assertEquals("WILD_DRAW_FOUR", Card.rank("W4"));
+    }
+
+    @Test
+    public void testDeckHasFourWildsAndFourWildDrawFours() {
+        ArrayList<String> all = drawFullDeck();
+        int wilds = 0, wildFours = 0;
+        for (String c : all) {
+            if (c.equals("W")) wilds++;
+            else if (c.equals("W4")) wildFours++;
+        }
+        assertEquals(4, wilds);
+        assertEquals(4, wildFours);
+    }
+
+    @Test
+    public void testDeckHas25CardsPerColor() {
+        ArrayList<String> all = drawFullDeck();
+        for (String color : new String[]{"R", "Y", "G", "B"}) {
+            int count = 0;
+            for (String c : all) if (c.startsWith(color)) count++;
+            assertEquals("Expected 25 cards for color " + color, 25, count);
+        }
+    }
+
+    @Test
+    public void testDeckHasTwoSkipsPerColor() {
+        ArrayList<String> all = drawFullDeck();
+        for (String color : new String[]{"R", "Y", "G", "B"}) {
+            int count = 0;
+            for (String c : all) if (c.equals(color + "S")) count++;
+            assertEquals(2, count);
+        }
     }
 
     //  LEGAL PLAY TESTS 
@@ -253,7 +292,7 @@ public class UnoRulesTest {
         assertEquals(-1, result);
     }
 
-    //  UNO CALL AND PENALTY TESTS 
+    //  UNO CALL AND PENALTY TESTS
 
     @Test
     public void testUnoDetectedWhenOneCard() {
@@ -278,6 +317,47 @@ public class UnoRulesTest {
         players.get(1).hand.add(deck.draw());
         players.get(1).hand.add(deck.draw());
         assertEquals(before + 2, players.get(1).hand.size());
+    }
+
+    @Test
+    public void testUnoDetectedThroughEngine() {
+        ArrayList<Player> players = new ArrayList<>();
+        players.add(new Player("Bot1", false));
+        players.add(new Player("Bot2", false));
+        Deck deck = new Deck(new Random(1));
+        deck.build();
+        GameEngine engine = new GameEngine(players, deck, new Random(1), new GameView(true));
+        players.get(0).hand.clear();
+        players.get(0).hand.add("R5");
+        players.get(0).hand.add("R3");
+        players.get(1).hand.add("G5");
+        engine.upCard = "R7";
+        engine.calledColor = "";
+        engine.currentPlayer = 0;
+        engine.direction = 1;
+        engine.takeTurn();
+        assertEquals(1, players.get(0).hand.size());
+    }
+
+    @Test
+    public void testMissedUnoPenaltyThroughEngine() {
+        ArrayList<Player> players = new ArrayList<>();
+        players.add(new Player("Bot1", false));
+        players.add(new Player("Bot2", false));
+        Deck deck = new Deck(new Random(1));
+        deck.build();
+        GameEngine engine = new GameEngine(players, deck, new Random(1), new GameView(true));
+        players.get(0).hand.clear();
+        players.get(0).hand.add("R5");
+        players.get(0).hand.add("R3");
+        players.get(1).hand.clear();
+        players.get(1).hand.add("G5");
+        engine.upCard = "R7";
+        engine.calledColor = "";
+        engine.currentPlayer = 0;
+        engine.direction = 1;
+        engine.takeTurn();
+        assertEquals(3, players.get(1).hand.size());
     }
 
     //  SCORING TESTS 
