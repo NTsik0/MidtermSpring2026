@@ -1,12 +1,9 @@
 import java.util.logging.Logger;
-import java.util.logging.Level;
 import persistence.Database;
 import persistence.GameRepository;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Random;
-import java.util.Scanner;
 
 public class Main {
     static final Logger logger = Logger.getLogger(Main.class.getName());
@@ -14,10 +11,6 @@ public class Main {
     static ArrayList<String> deck = new ArrayList<String>();
     static ArrayList<String> discard = new ArrayList<String>();
     static int[] scores;
-    static int currentPlayer = 0;
-    static int direction = 1;
-    static String upCard = "";
-    static String calledColor = "";
     static boolean quiet = false;
     static Random random = new Random();
     static Deck gameDeck;
@@ -68,7 +61,7 @@ public class Main {
 
         for (int g = 1; g <= games; g++) {
             view.showGameHeader(g);
-            playGame();
+            playMultiRoundGame();
         }
 
         logger.info("All games finished.");
@@ -82,46 +75,41 @@ public class Main {
         scores = new int[players.size()];
     }
 
-    static void playGame() {
-        logger.info("Game started with " + players.size() + " players.");
+    static void playMultiRoundGame() {
         java.sql.Timestamp startedAt = new java.sql.Timestamp(System.currentTimeMillis());
-        gameDeck.build();
-        for (int i = 0; i < players.size(); i++) {
-            players.get(i).hand.clear();
-            for (int j = 0; j < 7; j++) players.get(i).hand.add(gameDeck.draw());
-        }
-        upCard = gameDeck.draw();
-        while (upCard.startsWith("W")) {
-            gameDeck.discard(upCard);
-            upCard = gameDeck.draw();
-        }
-        calledColor = "";
-        direction = 1;
-        currentPlayer = random.nextInt(players.size());
+        GameEngine engine = new GameEngine(players, gameDeck, random, view);
+        int totalRounds = 0;
 
-        int guard = 0;
-        while (guard < 3000) {
-            guard++;
-            if (takeTurn()) {
-                saveGameResult(startedAt, guard);
-                return;
+        while (!engine.isGameOver()) {
+            logger.info("Starting new round. Scores: " + java.util.Arrays.toString(engine.getScores()));
+            engine.setupRound();
+
+            int guard = 0;
+            while (guard < 3000) {
+                guard++;
+                if (engine.takeTurn()) break;
             }
+            totalRounds++;
+            scores = engine.getScores();
+            view.showRoundScores(players, scores);
         }
-        logger.warning("Game stopped at safety limit.");
-        view.showSafetyLimit();
-        saveGameResult(startedAt, 3000);
+
+        int winnerIdx = engine.getWinnerIndex();
+        String winner = players.get(winnerIdx).name;
+        logger.info("Game over! Winner: " + winner + " with " + scores[winnerIdx] + " points.");
+        System.out.println("\n" + winner + " wins the game with " + scores[winnerIdx] + " points!");
+        saveGameResult(startedAt, totalRounds, winner, scores);
     }
 
-    static void saveGameResult(java.sql.Timestamp startedAt, int rounds) {
+    static void saveGameResult(java.sql.Timestamp startedAt, int rounds, String winner, int[] finalScores) {
         try {
             GameRepository repo = new GameRepository();
             java.sql.Timestamp endedAt = new java.sql.Timestamp(System.currentTimeMillis());
-            String winner = players.get(currentPlayer).name;
             int gameId = repo.saveGame(startedAt, endedAt, rounds, winner);
             for (int i = 0; i < players.size(); i++) {
-                repo.saveScore(gameId, players.get(i).name, scores[i]);
+                repo.saveScore(gameId, players.get(i).name, finalScores[i]);
             }
-            logger.info("Game result saved to database. Winner: " + winner);
+            logger.info("Game result saved. Winner: " + winner);
         } catch (Exception e) {
             logger.warning("Could not save game result: " + e.getMessage());
         }
@@ -129,7 +117,6 @@ public class Main {
 
     static void showStats() {
         GameRepository repo = new GameRepository();
-
         System.out.println("\n=== Recent Games ===");
         for (java.util.Map<String, Object> row : repo.getRecentGames()) {
             System.out.println("Game #" + row.get("ID") +
@@ -137,133 +124,17 @@ public class Main {
                 " | Rounds: " + row.get("ROUNDS") +
                 " | Ended: " + row.get("ENDED_AT"));
         }
-
         System.out.println("\n=== Player Win Count ===");
         for (java.util.Map<String, Object> row : repo.getPlayerWinCount()) {
             System.out.println(row.get("WINNER") + ": " + row.get("WINS") + " wins");
         }
-
         System.out.println("\n=== Highest Scores ===");
         for (java.util.Map<String, Object> row : repo.getHighestScores()) {
             System.out.println(row.get("PLAYER") + ": " + row.get("TOTAL_SCORE") + " points");
         }
     }
 
-    static boolean takeTurn() {
-        String name = players.get(currentPlayer).name;
-        ArrayList<String> hand = players.get(currentPlayer).hand;
-
-        logger.info("Player turn: " + name);
-        view.showUpCard(upCard, calledColor);
-        view.showHand(name, hand);
-
-        int chosen = players.get(currentPlayer).human
-                ? view.askHuman(hand, upCard, calledColor)
-                : players.get(currentPlayer).chooseCard(upCard, calledColor);
-
-        if (chosen == -1) {
-            String drawn = gameDeck.draw();
-            hand.add(drawn);
-            logger.info(name + " draws card: " + drawn);
-            view.showDraw(name, drawn);
-            if (Card.isLegal(drawn, upCard, calledColor)) {
-                if (!players.get(currentPlayer).human) {
-                    chosen = hand.size() - 1;
-                } else {
-                    System.out.print("Play drawn card " + drawn + "? y/n: ");
-                    if (view.askYesNo()) chosen = hand.size() - 1;
-                }
-            }
-        }
-
-        if (chosen >= 0) {
-            if (chosen >= hand.size()) {
-                logger.warning(name + " selected invalid card index: " + chosen);
-                view.showBadIndex(name);
-                hand.add(gameDeck.draw());
-                next();
-                return false;
-            }
-            String card = hand.get(chosen);
-            if (!Card.isLegal(card, upCard, calledColor)) {
-                logger.warning(name + " tried illegal card: " + card + " on " + upCard);
-                view.showPenalty(name);
-                hand.add(gameDeck.draw());
-                next();
-                return false;
-            }
-            hand.remove(chosen);
-            gameDeck.discard(upCard);
-            upCard = card;
-            calledColor = "";
-            logger.info(name + " plays card: " + card);
-            view.showPlay(name, card);
-
-            if (card.equals("W") || card.equals("W4")) {
-                calledColor = players.get(currentPlayer).human
-                        ? view.askColor()
-                        : players.get(currentPlayer).chooseColor();
-                view.showColorCall(name, calledColor);
-            }
-
-            if (hand.size() == 1) view.showUno(name);
-
-            if (hand.size() == 0) {
-                int points = countPoints();
-                scores[currentPlayer] += points;
-                logger.info("Round ended. " + name + " wins and scores " + points + " points.");
-                view.showWin(name, points);
-                return true;
-            }
-
-            applyEffect(card);
-        } else {
-            next();
-        }
-        return false;
-    }
-
-    static int countPoints() {
-        int points = 0;
-        for (int i = 0; i < players.size(); i++) {
-            if (i != currentPlayer) {
-                for (String c : players.get(i).hand) points += Card.points(c);
-            }
-        }
-        return points;
-    }
-
-    static void applyEffect(String card) {
-        String r = Card.rank(card);
-        if (r.equals("SKIP")) {
-            next();
-            next();
-        } else if (r.equals("REVERSE")) {
-            direction = direction * -1;
-            if (players.size() == 2) {
-                next();
-                next();
-            } else {
-                next();
-            }
-        } else if (r.equals("DRAW_TWO")) {
-            next();
-            players.get(currentPlayer).hand.add(gameDeck.draw());
-            players.get(currentPlayer).hand.add(gameDeck.draw());
-            view.showDrawTwo(players.get(currentPlayer).name);
-            next();
-        } else if (r.equals("WILD_DRAW_FOUR")) {
-            next();
-            for (int i = 0; i < 4; i++) {
-                players.get(currentPlayer).hand.add(gameDeck.draw());
-            }
-            view.showDrawFour(players.get(currentPlayer).name);
-            next();
-        } else {
-            next();
-        }
-    }
-
+    // kept for selfTest only
     static String draw() {
         if (deck.size() == 0) {
             deck.addAll(discard);
@@ -274,54 +145,11 @@ public class Main {
         return deck.remove(0);
     }
 
-    static int chooseBotCard(ArrayList<String> hand, String upCard, String calledColor) {
-        for (int i = 0; i < hand.size(); i++) {
-            String card = hand.get(i);
-            boolean ok = Card.isLegal(card, upCard, calledColor);
-            if (rank(card).equals("DRAW_TWO") && ok) return i;
-        }
-        for (int i = 0; i < hand.size(); i++) {
-            String card = hand.get(i);
-            boolean ok = Card.isLegal(card, upCard, calledColor);
-            if (rank(card).equals("SKIP") && ok) return i;
-        }
-        for (int i = 0; i < hand.size(); i++) {
-            String card = hand.get(i);
-            boolean ok = Card.isLegal(card, upCard, calledColor);
-            if (rank(card).equals("NUMBER") && ok) return i;
-        }
-        for (int i = 0; i < hand.size(); i++) {
-            if (hand.get(i).startsWith("W")) return i;
-        }
-        return -1;
-    }
-
-    static String chooseBotColor(ArrayList<String> hand) {
-        int r = 0, y = 0, g = 0, b = 0;
-        for (int i = 0; i < hand.size(); i++) {
-            String c = Card.color(hand.get(i));
-            if (c.equals("R")) r++;
-            else if (c.equals("Y")) y++;
-            else if (c.equals("G")) g++;
-            else if (c.equals("B")) b++;
-        }
-        if (r >= y && r >= g && r >= b) return "R";
-        else if (y >= r && y >= g && y >= b) return "Y";
-        else if (g >= r && g >= y && g >= b) return "G";
-        else return "B";
-    }
-
     static boolean isLegal(String card, String up, String call) { return Card.isLegal(card, up, call); }
     static String color(String card) { return Card.color(card); }
     static String rank(String card) { return Card.rank(card); }
     static int number(String card) { return Card.number(card); }
     static int points(String card) { return Card.points(card); }
-
-    static void next() {
-        currentPlayer += direction;
-        if (currentPlayer >= players.size()) currentPlayer = 0;
-        if (currentPlayer < 0) currentPlayer = players.size() - 1;
-    }
 
     static void selfTest() {
         int passed = 0;

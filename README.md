@@ -1,6 +1,7 @@
 # UNO CLI
 
-A command-line UNO card game written in Java.
+A command-line UNO card game written in Java with full rule implementation,
+multi-round scoring, database persistence, and comprehensive tests.
 
 ## Requirements
 
@@ -33,12 +34,10 @@ java -jar target/uno-cli.jar --bots 3 --games 1
 mvn package
 ```
 
-This creates `target/uno-cli.jar`.
-
 ## Run Options
 --bots N     Number of bot players (default: 3)
 
---games N    Number of games to play (default: 1)
+--games N    Number of multi-round games (default: 1)
 
 --quiet      Suppress game output, show only logs
 
@@ -46,11 +45,13 @@ This creates `target/uno-cli.jar`.
 
 --seed N     Set random seed for reproducibility
 
+--stats      Show game history and statistics
+
 ## Examples
 
-Run 5 quiet bot games:
+Run a full multi-round game to 500 points:
 ```bash
-java -jar target/uno-cli.jar --bots 3 --games 5 --quiet
+java -jar target/uno-cli.jar --bots 3 --games 1
 ```
 
 Play as human against 2 bots:
@@ -63,6 +64,11 @@ Run self-test:
 java -jar target/uno-cli.jar --self-test
 ```
 
+View game statistics:
+```bash
+java -jar target/uno-cli.jar --stats
+```
+
 ## Docker Build
 
 ```bash
@@ -73,11 +79,6 @@ docker build -t uno-cli .
 
 ```bash
 docker run --rm uno-cli
-```
-
-Run with custom options:
-```bash
-docker run --rm uno-cli --bots 3 --games 5 --quiet
 ```
 
 ## Card Format
@@ -95,11 +96,26 @@ W4    Wild Draw Four
 
 draw  Draw a card
 
+## Rules
+
+See `docs/rules-supported.md` for full list of implemented rules.
+
 ## Logging
 
 The game logs important events using `java.util.logging`:
-- Game start
+- Game start and end
 - Player turns
 - Cards played and drawn
 - Invalid input
-- Round and game end
+- Round and game results
+
+## Database
+
+Game results are stored in H2 database automatically.
+See `docs/database.md` for details.
+
+## Documentation
+
+- `docs/rules-supported.md` — implemented rules
+- `docs/database.md` — database setup and usage
+- `docs/final-report.md` — final project report
