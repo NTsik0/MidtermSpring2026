@@ -19,6 +19,7 @@ public class GameRepository {
     public void saveScore(int gameId, String player, int score) {
         try (SqlSession session = Database.openSession()) {
             GameMapper mapper = session.getMapper(GameMapper.class);
+            mapper.upsertPlayer(player);
             mapper.insertScore(new ScoreRecord(gameId, player, score));
         }
     }

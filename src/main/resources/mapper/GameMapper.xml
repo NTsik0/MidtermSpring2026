@@ -9,6 +9,10 @@
         VALUES (#{startedAt}, #{endedAt}, #{rounds}, #{winner})
     </insert>
 
+    <insert id="upsertPlayer">
+        MERGE INTO players (name) KEY (name) VALUES (#{name})
+    </insert>
+
     <insert id="insertScore">
         INSERT INTO game_scores (game_id, player, score)
         VALUES (#{gameId}, #{player}, #{score})
