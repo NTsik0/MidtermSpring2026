@@ -64,10 +64,10 @@ The CLI does not contain game rules. Rules live in `GameEngine` and `Card`. Test
 ## Tests Added
 
 - `UnoTest.java` — 48 characterization tests from midterm (card rules, bot behavior, scoring)
-- `UnoRulesTest.java` — 33 new tests covering all rule features (deck composition, legal play, Skip, Reverse, Draw Two, Wild, Wild Draw Four, draw/pass, UNO penalty, scoring, multi-round target)
+- `UnoRulesTest.java` — 38 new tests covering all rule features (deck composition, legal play, Skip, Reverse, Draw Two, Wild, Wild Draw Four, draw/pass, UNO penalty, scoring, multi-round target)
 - `PersistenceTest.java` — 5 tests for database persistence layer
 
-Total: 86 tests, all passing.
+Total: 91 tests, all passing.
 
 ## Limitations
 
