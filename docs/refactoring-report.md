@@ -42,14 +42,24 @@ I expanded selfTest() from 9 checks to 58 checks including:
 8. Move Method: askHuman(), askColor(), askYesNo() moved from Main to GameView.java
 9. Extracted method: countPoints() - I have seperated scoring calculation from game completion detection inside takeTurn()
    They were written in the same block, and it was kind of unclear where scoring ended and where was win detection beginning.
-10. Added two new tests: I added 2 new characterization tests, Deck.draw() fallback now tested through a Deck directly,
-   previously it was done by static draw() methods in Main, and also the bot wild quirk where wild fallback loop has no isLegal
-   guard, meaning bot always plays a wild if it holds one no matter if it holds legal card or not.
-11. Removed chooseBotCard() and chooseBotColor() from Main.java entirely. selfTest() now calls bot logic through Player instances,
-   so Player methods are directly tested by tests.
-   
+10. Added two new tests: Deck.draw() fallback now tested through a Deck directly,
+   previously done through static draw() in Main, and the bot wild quirk where
+   the wild fallback loop has no isLegal guard.
+11. Removed chooseBotCard() and chooseBotColor() from Main.java entirely. selfTest() now
+   calls bot logic through Player instances so Player methods are directly tested.
+12. Extracted Class: GameSession.java - upCard, calledColor, currentPlayer, direction,
+   scores, takeTurn(), applyEffect(), countPoints(), and next() all moved out of Main.
+   Main.playGame() now creates a GameSession, calls setupRound(), runs the guard loop,
+   and merges scores back. This removes all turn-level mutable state from Main.
+13. Added injectable Scanner to GameView: a second constructor GameView(boolean, Scanner)
+   lets tests pass string-backed scanners instead of reading from System.in.
+14. Added 14 new characterization tests: applyEffect for skip, reverse (2p and 3p),
+   draw_two, and wild_draw_four; countPoints excluding the winner; askColor valid and
+   retry; askYesNo y and n; askHuman with DRAW, card code, and index input; and a safety
+   limit characterization confirming scores stay 0 when no winner within the guard.
+
 Each step was done separately and tests were run after each one to confirm
-   nothing broke before moving on.
+nothing broke before moving on. Total checks grew from 58 to 72.
 
 ## What behavior did you intentionally preserve?
 
@@ -64,10 +74,12 @@ Each step was done separately and tests were run after each one to confirm
 - 
 ## What risks remain?
 
-- Global state (currentPlayer, direction, upCard, calledColor) is still in
-  Main. Creating a separate Game class would fix this but would require
-  a much larger restructure with more test coverage first.
-- applyEffect() is still a chain of if/else if blocks. Replacing it with a
-  cleaner structure would need more tests around each effect first.
-- Human input (askYesNo, askColor) cannot be tested without live Scanner
-  input, so those paths remain untested.
+- applyEffect() is still a chain of if/else if blocks inside GameSession.
+  Each branch is now tested, but replacing the chain with a strategy or
+  command pattern would require a larger restructure.
+- GameSession fields (upCard, calledColor, currentPlayer, direction) are
+  package-visible so selfTest() can access them directly. Making them private
+  would require adding more accessor methods.
+- The safety limit (3000 turns per game) is a documented guard. A bot-only
+  game can reach it with certain seeds. When it fires, scores correctly stay
+  at zero and the message is printed. This is now characterized in selfTest().
