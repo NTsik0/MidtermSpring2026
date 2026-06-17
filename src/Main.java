@@ -1,20 +1,13 @@
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Random;
-import java.util.Scanner;
 
 public class Main {
     static ArrayList<Player> players = new ArrayList<Player>();
-    // i will keep these 2 and the draw() method for selfTest() because test uses them
+    // kept for selfTest draw() only
     static ArrayList<String> deck = new ArrayList<String>();
     static ArrayList<String> discard = new ArrayList<String>();
-    // I have updated it, the size now matches actual player count that is initialized in setupPlayers()
     static int[] scores;
-    static int currentPlayer = 0;
-    static int direction = 1;
-    static String upCard = "";
-    static String calledColor = "";
     static boolean quiet = false;
     static Random random = new Random();
     static Deck gameDeck;
@@ -68,243 +61,41 @@ public class Main {
         players.clear();
         if (human) players.add(new Player("You", true));
         for (int i = 1; i <= bots; i++) players.add(new Player("Bot" + i, false));
-        scores = new int[players.size()]; // this is now correctly sized
-        //  this were used when there were no player class now we have player class so list became redundant.
-        //  hands.clear();
-        //  for (Player p : players) hands.add(p.hand);
-        //  playerNames.clear();
-        //  for (Player p : players) playerNames.add(p.name);
-        //  humanPlayers.clear();
-        //  for (Player p : players) humanPlayers.add(p.human);
+        scores = new int[players.size()];
     }
-    // I rewrote the code, made it shorter, it keeps only the setup and the loop, evrything that was inside here the while ( guard < 3000) loop moves into takeTurn()
-    static void playGame() {
-        gameDeck.build();
-        for (int i = 0; i < players.size(); i++) {
-            players.get(i).hand.clear();
-            for (int j = 0; j < 7; j++) players.get(i).hand.add(gameDeck.draw());
-        }
-        upCard = gameDeck.draw();
-        while (upCard.startsWith("W")) {
-            gameDeck.discard(upCard);
-            upCard = gameDeck.draw();
-        }
-        calledColor = "";
-        direction = 1;
-        currentPlayer = random.nextInt(players.size());
 
+    static void playGame() {
+        GameSession session = new GameSession(players, gameDeck, random, view);
+        session.setupRound();
         int guard = 0;
+        boolean roundOver = false;
         while (guard < 3000) {
             guard++;
-            if (takeTurn()) return;
+            if (session.takeTurn()) { roundOver = true; break; }
         }
-        view.showSafetyLimit();
-    }
-    // added takeTurn, bacause it returns true when someone wins, false to keep playing,
-    static boolean takeTurn() {
-        String name = players.get(currentPlayer).name;
-        ArrayList<String> hand = players.get(currentPlayer).hand;
-
-        view.showUpCard(upCard, calledColor);
-        view.showHand(name, hand);
-
-        int chosen = players.get(currentPlayer).human
-                ? view.askHuman(hand, upCard, calledColor)
-                : players.get(currentPlayer).chooseCard(upCard, calledColor);
-
-        if (chosen == -1) {
-            String drawn = gameDeck.draw();
-            hand.add(drawn);
-            view.showDraw(name, drawn);
-            if (Card.isLegal(drawn, upCard, calledColor)) {
-                if (!players.get(currentPlayer).human) {
-                    chosen = hand.size() - 1;
-                } else {
-                    System.out.print("Play drawn card " + drawn + "? y/n: ");
-                    if (view.askYesNo()) chosen = hand.size() - 1;
-                }
-            }
+        if (!roundOver) {
+            view.showSafetyLimit();
         }
-
-        if (chosen >= 0) {
-            if (chosen >= hand.size()) {
-                view.showBadIndex(name);
-                hand.add(gameDeck.draw());
-                next();
-                return false;
-            }
-            String card = hand.get(chosen);
-            if (!Card.isLegal(card, upCard, calledColor)) {
-                view.showPenalty(name);
-                hand.add(gameDeck.draw());
-                next();
-                return false;
-            }
-            hand.remove(chosen);
-            gameDeck.discard(upCard);
-            upCard = card;
-            calledColor = "";
-            view.showPlay(name, card);
-
-            if (card.equals("W") || card.equals("W4")) {
-                calledColor = players.get(currentPlayer).human
-                        ? view.askColor()
-                        : players.get(currentPlayer).chooseColor();
-                view.showColorCall(name, calledColor);
-            }
-
-            if (hand.size() == 1) view.showUno(name);
-
-            if (hand.size() == 0) {
-                // new methods countpoints added.
-                int points = countPoints();
-                scores[currentPlayer] += points;
-                view.showWin(name, points);
-                return true;
-            }
-
-            applyEffect(card);
-        } else {
-            next();
-        }
-        return false;
-    }
-    // new methods countpoints.
-    static int countPoints(){
-        int points = 0;
-        for ( int i = 0; i < players.size(); i++){
-            if (i != currentPlayer){
-                for (String c : players.get(i).hand) points += Card.points(c);
-            }
-        }
-        return points;
+        int[] sessionScores = session.getScores();
+        for (int i = 0; i < scores.length; i++) scores[i] += sessionScores[i];
     }
 
-    static void applyEffect(String card) {
-        String r = Card.rank(card);
-        if (r.equals("SKIP")) {
-            next();
-            next();
-        } else if (r.equals("REVERSE")) {
-            direction = direction * -1;
-            if (players.size() == 2) {
-                next();
-                next();
-            } else {
-                next();
-            }
-        } else if (r.equals("DRAW_TWO")) {
-            next();
-            players.get(currentPlayer).hand.add(gameDeck.draw());
-            players.get(currentPlayer).hand.add(gameDeck.draw());
-            view.showDrawTwo(players.get(currentPlayer).name);
-            next();
-        } else if (r.equals("WILD_DRAW_FOUR")) {
-            next();
-            for (int i = 0; i < 4; i++) {
-                players.get(currentPlayer).hand.add(gameDeck.draw());
-            }
-            view.showDrawFour(players.get(currentPlayer).name);
-            next();
-        } else {
-            next();
-        }
-    }
-    // used by test
+    // kept for selfTest only
     static String draw() {
         if (deck.size() == 0) {
             deck.addAll(discard);
             discard.clear();
             Collections.shuffle(deck, random);
         }
-        if (deck.size() == 0) {
-            return "W";
-        }
+        if (deck.size() == 0) return "W";
         return deck.remove(0);
     }
-    //this down here was repeated 4 times, we rewrote if - else if - else if .... logic like this
-    static int chooseBotCard(ArrayList<String> hand, String upCard, String calledColor) {
-        // prefer draw_two
-        for (int i = 0; i < hand.size(); i++) {
-            String card = hand.get(i);
-            boolean ok = Card.isLegal(card, upCard, calledColor);
-            if (rank(card).equals("DRAW_TWO") && ok) return i;
-        }
-        // prefer skip
-        for (int i = 0; i < hand.size(); i++) {
-            String card = hand.get(i);
-            boolean ok = Card.isLegal(card, upCard, calledColor);
-            if (rank(card).equals("SKIP") && ok) return i;
-        }
-        // prefer number
-        for (int i = 0; i < hand.size(); i++) {
-            String card = hand.get(i);
-            boolean ok = Card.isLegal(card, upCard, calledColor);
-            if (rank(card).equals("NUMBER") && ok) return i;
-        }
-        // fall back to wild
-        for (int i = 0; i < hand.size(); i++) {
-            if (hand.get(i).startsWith("W")) return i;
-        }
-        return -1;
-    }
 
-
-
-    static String chooseBotColor(ArrayList<String> hand) {
-        int r = 0;
-        int y = 0;
-        int g = 0;
-        int b = 0;
-        for (int i = 0; i < hand.size(); i++) {
-            String c = Card.color(hand.get(i));
-            if (c.equals("R")) {
-                r++;
-            } else if (c.equals("Y")) {
-                y++;
-            } else if (c.equals("G")) {
-                g++;
-            } else if (c.equals("B")) {
-                b++;
-            }
-        }
-        if (r >= y && r >= g && r >= b) {
-            return "R";
-        } else if (y >= r && y >= g && y >= b) {
-            return "Y";
-        } else if (g >= r && g >= y && g >= b) {
-            return "G";
-        } else {
-            return "B";
-        }
-    }
-
-    static boolean isLegal(String card, String up, String call) {
-        return Card.isLegal(card, up, call);
-    }
-
-    static String color(String card) {
-        return Card.color(card);
-    }
-
-    static String rank(String card) {
-        return Card.rank(card);
-    }
-
-    static int number(String card) {
-        return Card.number(card);
-    }
-
-    static int points(String card) {
-        return Card.points(card);
-    }
-
-    static void next() {
-        currentPlayer += direction;
-        if (currentPlayer >= players.size()) currentPlayer = 0;
-        if (currentPlayer < 0) currentPlayer = players.size() - 1;
-    }
-    // removed join method and I will add this to selfTest() that calls join()
+    static boolean isLegal(String card, String up, String call) { return Card.isLegal(card, up, call); }
+    static String color(String card) { return Card.color(card); }
+    static String rank(String card) { return Card.rank(card); }
+    static int number(String card) { return Card.number(card); }
+    static int points(String card) { return Card.points(card); }
 
     static void selfTest() {
         int passed = 0;
@@ -315,82 +106,62 @@ public class Main {
         if (isLegal("G9", "R9", "")) passed++; else fail("same number");
         if (isLegal("B3", "W", "B")) passed++; else fail("called color");
         if (!isLegal("B3", "R9", "")) passed++; else fail("illegal mismatch");
-        // here I am adding color() tests
         if (Card.color("Y5").equals("Y")) passed++; else fail("color Y5");
         if (Card.color("G+2").equals("G")) passed++; else fail("color G+2");
         if (Card.color("BS").equals("B")) passed++; else fail("color BS");
         if (Card.color("W").equals("")) passed++; else fail("color W is empty");
         if (Card.color("W4").equals("")) passed++; else fail("color W4 is empty");
-        // we should also add rank() tests
-        if(Card.rank("RS").equals("SKIP")) passed++; else fail("rank RS");
-        if(Card.rank("BR").equals("REVERSE")) passed++; else fail("rank BR");
-        if(Card.rank("R+2").equals("DRAW_TWO")) passed++; else fail("rank R+2");
-        if(Card.rank("W").equals("WILD")) passed++; else fail("rank W");
-        if(Card.rank("W4").equals("WILD_DRAW_FOUR")) passed++; else fail("rank W4");
-        if(Card.rank("R0").equals("NUMBER")) passed++; else fail("rank R0");
-        if(Card.rank("G7").equals("NUMBER")) passed++; else fail("rank G7");
-        // now number() tests
-        if(Card.number("R0") == 0) passed++; else fail("number R0");
-        if(Card.number("G7") == 7) passed++; else fail("number G7");
-        if(Card.number("B9") == 9) passed++; else fail("number B9");
-        if(Card.number("RS") == -1) passed++; else fail("number of non-number card");
-        // and point() tests
-        if(Card.points("R5") == 5) passed++; else fail("points R5");
-        if(Card.points("G0") == 0) passed++; else fail("points G0");
-        if(Card.points("BS") == 20) passed++; else fail("points BS");
-        if(Card.points("YR") == 20) passed++; else fail("points YR");
-        if(Card.points("R+2") == 20) passed++; else fail("points R+2");
-        if(Card.points("W") == 50) passed++; else fail("points W");
-        // now we have to add tests for isLegal() by 3 things, match by color, number, action type (same rank), wilds are always legal, called color rule (this is after a wild is played)
-        // match by color
+        if (Card.rank("RS").equals("SKIP")) passed++; else fail("rank RS");
+        if (Card.rank("BR").equals("REVERSE")) passed++; else fail("rank BR");
+        if (Card.rank("R+2").equals("DRAW_TWO")) passed++; else fail("rank R+2");
+        if (Card.rank("W").equals("WILD")) passed++; else fail("rank W");
+        if (Card.rank("W4").equals("WILD_DRAW_FOUR")) passed++; else fail("rank W4");
+        if (Card.rank("R0").equals("NUMBER")) passed++; else fail("rank R0");
+        if (Card.rank("G7").equals("NUMBER")) passed++; else fail("rank G7");
+        if (Card.number("R0") == 0) passed++; else fail("number R0");
+        if (Card.number("G7") == 7) passed++; else fail("number G7");
+        if (Card.number("B9") == 9) passed++; else fail("number B9");
+        if (Card.number("RS") == -1) passed++; else fail("number of non-number card");
+        if (Card.points("R5") == 5) passed++; else fail("points R5");
+        if (Card.points("G0") == 0) passed++; else fail("points G0");
+        if (Card.points("BS") == 20) passed++; else fail("points BS");
+        if (Card.points("YR") == 20) passed++; else fail("points YR");
+        if (Card.points("R+2") == 20) passed++; else fail("points R+2");
+        if (Card.points("W") == 50) passed++; else fail("points W");
         if (isLegal("R9","R5","")) passed++; else fail("legal:same color");
         if (isLegal("RS","R5","")) passed++; else fail("legal:same color action");
         if (!isLegal("G5","R7","")) passed++; else fail("illegal: different color different number");
-        // match by number
         if (isLegal("G5","R5","")) passed++; else fail("legal:same number");
         if (isLegal("B5","Y5","")) passed++; else fail("legal:same number different color");
         if (!isLegal("R4","G7","")) passed++; else fail("illegal:different number different color");
-        // match by action type (same rank)
         if (isLegal("GS", "RS", "")) passed++; else fail("legal: skip on skip");
         if (isLegal("BR", "YR", "")) passed++; else fail("legal: reverse on reverse");
         if (isLegal("Y+2", "R+2", "")) passed++; else fail("legal: draw two on draw two");
-        // wilds are always legal
         if (isLegal("W", "R5", "")) passed++; else fail("legal: wild always");
         if (isLegal("W4", "G9", "")) passed++; else fail("legal: W4 always");
         if (isLegal("W", "W4", "")) passed++; else fail("legal: wild on W4");
-        // called color rule (after a wild is played)
         if (isLegal("G3", "W", "G")) passed++; else fail("legal: called color match");
         if (isLegal("GS", "W4", "G")) passed++; else fail("legal: action on called color");
         if (!isLegal("R3", "W", "G")) passed++; else fail("illegal: wrong color on called color");
 
-        // here we gotta add tests for bot behaviour quirks
-        // bot prefers draw_two over skip over number over wild
         Player bot1 = new Player("test", false);
-        bot1.hand.add("R+2");
-        bot1.hand.add("RS");
-        bot1.hand.add("R5");
-        bot1.hand.add("W");
+        bot1.hand.add("R+2"); bot1.hand.add("RS"); bot1.hand.add("R5"); bot1.hand.add("W");
         if (bot1.chooseCard("R7", "") == 0) passed++; else fail("bot prefers draw two");
 
         Player bot2 = new Player("test", false);
-        bot2.hand.add("RS");
-        bot2.hand.add("R5");
-        bot2.hand.add("W");
+        bot2.hand.add("RS"); bot2.hand.add("R5"); bot2.hand.add("W");
         if (bot2.chooseCard("R7", "") == 0) passed++; else fail("bot prefers skip over number");
 
         Player bot3 = new Player("test", false);
-        bot3.hand.add("R5");
-        bot3.hand.add("W");
+        bot3.hand.add("R5"); bot3.hand.add("W");
         if (bot3.chooseCard("R7", "") == 0) passed++; else fail("bot prefers number over wild");
 
         Player bot4 = new Player("test", false);
-        bot4.hand.add("G3");
-        bot4.hand.add("W");
+        bot4.hand.add("G3"); bot4.hand.add("W");
         if (bot4.chooseCard("R7", "") == 1) passed++; else fail("bot falls back to wild");
 
         Player bot5 = new Player("test", false);
-        bot5.hand.add("G3");
-        bot5.hand.add("B7");
+        bot5.hand.add("G3"); bot5.hand.add("B7");
         if (bot5.chooseCard("R5", "") == -1) passed++; else fail("bot returns -1 when no legal card");
 
         Player colorBot1 = new Player("test", false);
@@ -398,22 +169,17 @@ public class Main {
         colorBot1.hand.add("G1"); colorBot1.hand.add("G2");
         if (colorBot1.chooseColor().equals("R")) passed++; else fail("bot color: most common");
 
-        // scoring math
         ArrayList<String> loserHand = new ArrayList<String>();
-        loserHand.add("R5");
-        loserHand.add("GS");
-        loserHand.add("W");
+        loserHand.add("R5"); loserHand.add("GS"); loserHand.add("W");
         int totalPoints = 0;
         for (String c : loserHand) totalPoints += points(c);
         if (totalPoints == 75) passed++; else fail("scoring: 5+20+50=75");
 
-        // legacy draw() fallback
         deck.clear(); discard.clear();
         String fallback = draw();
         if (fallback.equals("W")) passed++; else fail("draw fallback returns W");
         deck.clear(); discard.clear();
 
-        // join format
         ArrayList<String> joinTest = new ArrayList<String>();
         joinTest.add("R5"); joinTest.add("W");
         if (GameView.join(joinTest).equals("0:R5 1:W")) passed++; else fail("join format");
@@ -423,27 +189,149 @@ public class Main {
         if (tieBot.chooseColor().equals("Y")) passed++; else fail("bot color tie: Y wins if equal");
 
         Player normalBot = new Player("test", false);
-        normalBot.hand.add("B3");
-        normalBot.hand.add("R4");
-        normalBot.hand.add("W");
+        normalBot.hand.add("B3"); normalBot.hand.add("R4"); normalBot.hand.add("W");
         if (normalBot.chooseCard("R9", "") == 1) passed++; else fail("bot normal before wild");
 
         Player colorBot2 = new Player("test", false);
-        colorBot2.hand.add("B1");
-        colorBot2.hand.add("B2");
-        colorBot2.hand.add("R3");
+        colorBot2.hand.add("B1"); colorBot2.hand.add("B2"); colorBot2.hand.add("R3");
         if (colorBot2.chooseColor().equals("B")) passed++; else fail("bot color");
 
-        // Deck.java fallback
         Deck testDeck = new Deck(new Random(42));
         if (testDeck.draw().equals("W")) passed++; else fail("Deck.draw fallback returns W");
 
-        // wild quirk: bot plays wild without isLegal guard
         Player wildBot = new Player("test", false);
-        wildBot.hand.add("G3");
-        wildBot.hand.add("W");
+        wildBot.hand.add("G3"); wildBot.hand.add("W");
         if (wildBot.chooseCard("R5", "") == 1) passed++;
         else fail("bot wild quirk: no isLegal guard on wild");
+
+        // GameSession: applyEffect skip skips the next player
+        {
+            ArrayList<Player> ps = new ArrayList<Player>();
+            ps.add(new Player("A", false)); ps.add(new Player("B", false)); ps.add(new Player("C", false));
+            GameSession gs = new GameSession(ps, new Deck(new Random(1)), new Random(1), new GameView(true));
+            gs.currentPlayer = 0; gs.direction = 1;
+            gs.applyEffect("RS");
+            if (gs.currentPlayer == 2) passed++; else fail("applyEffect skip: lands on player after next");
+        }
+
+        // GameSession: applyEffect reverse flips direction and advances
+        {
+            ArrayList<Player> ps = new ArrayList<Player>();
+            ps.add(new Player("A", false)); ps.add(new Player("B", false)); ps.add(new Player("C", false));
+            GameSession gs = new GameSession(ps, new Deck(new Random(1)), new Random(1), new GameView(true));
+            gs.currentPlayer = 0; gs.direction = 1;
+            gs.applyEffect("RR");
+            if (gs.direction == -1 && gs.currentPlayer == 2) passed++; else fail("applyEffect reverse 3p: direction -1, goes to last player");
+        }
+
+        // GameSession: applyEffect reverse with 2 players acts as skip (same player turn again)
+        {
+            ArrayList<Player> ps = new ArrayList<Player>();
+            ps.add(new Player("A", false)); ps.add(new Player("B", false));
+            GameSession gs = new GameSession(ps, new Deck(new Random(1)), new Random(1), new GameView(true));
+            gs.currentPlayer = 0; gs.direction = 1;
+            gs.applyEffect("RR");
+            if (gs.direction == -1 && gs.currentPlayer == 0) passed++; else fail("applyEffect reverse 2p: acts as skip");
+        }
+
+        // GameSession: applyEffect draw_two gives next player 2 cards and skips them
+        {
+            ArrayList<Player> ps = new ArrayList<Player>();
+            ps.add(new Player("A", false)); ps.add(new Player("B", false));
+            Deck d = new Deck(new Random(1)); d.build();
+            GameSession gs = new GameSession(ps, d, new Random(1), new GameView(true));
+            gs.currentPlayer = 0; gs.direction = 1;
+            gs.applyEffect("R+2");
+            if (ps.get(1).hand.size() == 2 && gs.currentPlayer == 0) passed++; else fail("applyEffect draw_two: B gets 2 cards, turn skips back to A");
+        }
+
+        // GameSession: applyEffect wild_draw_four gives next player 4 cards and skips them
+        {
+            ArrayList<Player> ps = new ArrayList<Player>();
+            ps.add(new Player("A", false)); ps.add(new Player("B", false));
+            Deck d = new Deck(new Random(1)); d.build();
+            GameSession gs = new GameSession(ps, d, new Random(1), new GameView(true));
+            gs.currentPlayer = 0; gs.direction = 1;
+            gs.applyEffect("W4");
+            if (ps.get(1).hand.size() == 4 && gs.currentPlayer == 0) passed++; else fail("applyEffect wild_draw_four: B gets 4 cards, turn skips back to A");
+        }
+
+        // GameSession: countPoints sums all hands except the winner
+        {
+            ArrayList<Player> ps = new ArrayList<Player>();
+            ps.add(new Player("A", false)); ps.add(new Player("B", false)); ps.add(new Player("C", false));
+            ps.get(1).hand.add("R5"); ps.get(2).hand.add("GS");
+            GameSession gs = new GameSession(ps, new Deck(new Random(1)), new Random(1), new GameView(true));
+            gs.currentPlayer = 0;
+            if (gs.countPoints() == 25) passed++; else fail("countPoints: 5+20=25 from losers");
+        }
+
+        // GameView: askColor with valid input
+        {
+            GameView tv = new GameView(true, new java.util.Scanner("R\n"));
+            if (tv.askColor().equals("R")) passed++; else fail("askColor returns R");
+        }
+
+        // GameView: askColor retries on bad input then returns valid
+        {
+            GameView tv = new GameView(true, new java.util.Scanner("X\nY\n"));
+            if (tv.askColor().equals("Y")) passed++; else fail("askColor skips bad input and returns Y");
+        }
+
+        // GameView: askYesNo returns true for y
+        {
+            GameView tv = new GameView(true, new java.util.Scanner("y\n"));
+            if (tv.askYesNo()) passed++; else fail("askYesNo y returns true");
+        }
+
+        // GameView: askYesNo returns false for n
+        {
+            GameView tv = new GameView(true, new java.util.Scanner("n\n"));
+            if (!tv.askYesNo()) passed++; else fail("askYesNo n returns false");
+        }
+
+        // GameView: askHuman DRAW returns -1
+        {
+            ArrayList<String> h = new ArrayList<String>();
+            h.add("R5"); h.add("W");
+            GameView tv = new GameView(true, new java.util.Scanner("DRAW\n"));
+            if (tv.askHuman(h, "R9", "") == -1) passed++; else fail("askHuman DRAW returns -1");
+        }
+
+        // GameView: askHuman legal card code returns its index
+        {
+            ArrayList<String> h = new ArrayList<String>();
+            h.add("R5"); h.add("W");
+            GameView tv = new GameView(true, new java.util.Scanner("R5\n"));
+            if (tv.askHuman(h, "R9", "") == 0) passed++; else fail("askHuman legal code returns index");
+        }
+
+        // GameView: askHuman index input returns that index
+        {
+            ArrayList<String> h = new ArrayList<String>();
+            h.add("R5"); h.add("W");
+            GameView tv = new GameView(true, new java.util.Scanner("1\n"));
+            if (tv.askHuman(h, "R9", "") == 1) passed++; else fail("askHuman index input returns index");
+        }
+
+        // safety limit characterization: when guard hits 3000 with no winner, scores stay 0
+        {
+            ArrayList<Player> ps = new ArrayList<Player>();
+            ps.add(new Player("A", false)); ps.add(new Player("B", false));
+            Deck d = new Deck(new Random(99));
+            GameSession gs = new GameSession(ps, d, new Random(99), new GameView(true));
+            gs.setupRound();
+            int guard = 0;
+            boolean won = false;
+            while (guard < 5) { guard++; if (gs.takeTurn()) { won = true; break; } }
+            if (!won) {
+                int[] sc = gs.getScores();
+                if (sc[0] == 0 && sc[1] == 0) passed++; else fail("safety limit: scores stay 0 when no winner");
+            } else {
+                passed++;
+            }
+        }
+
         System.out.println("Passed " + passed + " characterization checks.");
     }
 

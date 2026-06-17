@@ -5,9 +5,14 @@ public class GameView {
     private boolean quiet;
     // I am gonna move askHuman() and askColor() from Main into this GameView class, so I will add scanner and also update GameView constructor here
     private Scanner scanner;
+
     public GameView(boolean quiet) {
+        this(quiet, new Scanner(System.in));
+    }
+
+    public GameView(boolean quiet, Scanner scanner) {
         this.quiet = quiet;
-        this.scanner = new Scanner(System.in);
+        this.scanner = scanner;
     }
 
     public void showUpCard(String upCard, String calledColor) {
