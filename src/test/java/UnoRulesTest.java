@@ -18,17 +18,23 @@ public class UnoRulesTest {
 
     @Test
     public void testDeckHasFourColors() {
-        Deck d = new Deck(new Random(1));
-        d.build();
-        String card = d.draw();
-        assertNotNull(card);
+        ArrayList<String> all = drawFullDeck();
+        boolean hasR = false, hasY = false, hasG = false, hasB = false;
+        for (String c : all) {
+            if (c.startsWith("R")) hasR = true;
+            if (c.startsWith("Y")) hasY = true;
+            if (c.startsWith("G")) hasG = true;
+            if (c.startsWith("B")) hasB = true;
+        }
+        assertTrue(hasR && hasY && hasG && hasB);
     }
 
     @Test
     public void testDeckHasNumberCards() {
-        assertTrue(Card.rank("R5").equals("NUMBER"));
-        assertTrue(Card.rank("B0").equals("NUMBER"));
-        assertTrue(Card.rank("G9").equals("NUMBER"));
+        ArrayList<String> all = drawFullDeck();
+        int count = 0;
+        for (String c : all) if (Card.rank(c).equals("NUMBER")) count++;
+        assertEquals(76, count); // 4 colors × (1 zero + 2 each of 1-9) = 76
     }
 
     @Test
@@ -93,7 +99,22 @@ public class UnoRulesTest {
         }
     }
 
-    //  LEGAL PLAY TESTS 
+    @Test
+    public void testDeckHasTotalOf108Cards() {
+        assertEquals(108, drawFullDeck().size());
+    }
+
+    @Test
+    public void testDeckHasOneZeroPerColor() {
+        ArrayList<String> all = drawFullDeck();
+        for (String color : new String[]{"R", "Y", "G", "B"}) {
+            int count = 0;
+            for (String c : all) if (c.equals(color + "0")) count++;
+            assertEquals("Expected one 0 for color " + color, 1, count);
+        }
+    }
+
+    //  LEGAL PLAY TESTS
 
     @Test
     public void testMatchByColor() {
@@ -280,16 +301,41 @@ public class UnoRulesTest {
     }
 
     @Test
-    public void testDrawnCardCanBePlayed() {
-        assertTrue(Card.isLegal("R5", "R9", ""));
+    public void testBotPlaysLegalDrawnCard() {
+        // Empty deck returns "W" (always legal) — bot must play it immediately after drawing
+        ArrayList<Player> players = new ArrayList<>();
+        players.add(new Player("Bot1", false));
+        players.add(new Player("Bot2", false));
+        Deck deck = new Deck(new Random(1)); // no build → draw() returns "W" fallback
+        GameEngine engine = new GameEngine(players, deck, new Random(1), new GameView(true));
+        players.get(0).hand.clear();
+        players.get(0).hand.add("G3"); // no legal card for R5
+        players.get(1).hand.add("Y4");
+        engine.upCard = "R5";
+        engine.calledColor = "";
+        engine.currentPlayer = 0;
+        engine.direction = 1;
+        engine.takeTurn();
+        assertEquals("W", engine.upCard); // drawn Wild was played and became top card
     }
 
     @Test
-    public void testPassWhenNoLegalPlay() {
-        Player bot = new Player("test", false);
-        bot.hand.add("G3");
-        int result = bot.chooseCard("R5", "");
-        assertEquals(-1, result);
+    public void testTurnAdvancesAfterDraw() {
+        // After bot draws a card (no legal card in hand), turn moves to next player
+        ArrayList<Player> players = new ArrayList<>();
+        players.add(new Player("Bot1", false));
+        players.add(new Player("Bot2", false));
+        Deck deck = new Deck(new Random(1)); // no build → draw() returns "W" fallback
+        GameEngine engine = new GameEngine(players, deck, new Random(1), new GameView(true));
+        players.get(0).hand.clear();
+        players.get(0).hand.add("G3"); // no legal card for R5
+        players.get(1).hand.add("Y1");
+        engine.upCard = "R5";
+        engine.calledColor = "";
+        engine.currentPlayer = 0;
+        engine.direction = 1;
+        engine.takeTurn();
+        assertEquals(1, engine.currentPlayer); // turn passed to Bot2
     }
 
     //  UNO CALL AND PENALTY TESTS
