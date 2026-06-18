@@ -1,7 +1,9 @@
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.logging.Logger;
 
 public class GameView {
+    private static final Logger logger = Logger.getLogger(GameView.class.getName());
     private boolean quiet;
     // I am gonna move askHuman() and askColor() from Main into this GameView class, so I will add scanner and also update GameView constructor here
     private Scanner scanner;
@@ -102,13 +104,19 @@ public class GameView {
                 int index = Integer.parseInt(input);
                 if (index >= 0 && index < hand.size()) return index;
             } catch (Exception ignored) {}
+            boolean found = false;
             for (int i = 0; i < hand.size(); i++) {
                 if (hand.get(i).equals(input)) {
+                    found = true;
                     if (Card.isLegal(hand.get(i), upCard, calledColor)) return i;
+                    logger.warning("Human tried illegal card: " + input);
                     System.out.println("That card is not legal.");
                 }
             }
-            System.out.println("Card not found.");
+            if (!found) {
+                logger.warning("Human entered unrecognized input: " + input);
+                System.out.println("Card not found.");
+            }
         }
     }
 

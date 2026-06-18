@@ -91,6 +91,7 @@ public class Main {
             }
             totalRounds++;
             scores = engine.getScores();
+            logger.info("Round " + totalRounds + " ended. Scores: " + java.util.Arrays.toString(scores));
             view.showRoundScores(players, scores);
         }
 
