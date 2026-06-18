@@ -88,6 +88,14 @@ public class GameView {
         System.out.println("\n=== Game " + gameNumber + " ===");
     }
 
+    public void showRoundScores(ArrayList<Player> players, int[] scores) {
+        if (quiet) return;
+        System.out.println("\nRound scores:");
+        for (int i = 0; i < players.size(); i++) {
+            System.out.println(players.get(i).name + ": " + scores[i]);
+        }
+    }
+
     public void showFinalScores(ArrayList<Player> players, int[] scores) {
         System.out.println("\nFinal scores:");
         for (int i = 0; i < players.size(); i++) {
