@@ -12,7 +12,7 @@ All major UNO rules are implemented:
 - Wild (player chooses color, enforced on next play)
 - Wild Draw Four (player chooses color, next player draws four and loses turn)
 - Draw/Pass behavior (draw one card, may play if legal)
-- UNO call detection and missed-UNO penalty for bots
+- UNO call detection and missed-UNO penalty for all players (bots and human)
 - Round scoring (number=face value, action=20, wild=50)
 - Multi-round game to target score of 500 points
 
