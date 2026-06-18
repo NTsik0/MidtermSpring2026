@@ -64,15 +64,15 @@ The CLI does not contain game rules. Rules live in `GameEngine` and `Card`. Test
 ## Tests Added
 
 - `UnoTest.java` — 48 characterization tests from midterm (card rules, bot behavior, scoring)
-- `UnoRulesTest.java` — 38 new tests covering all rule features (deck composition, legal play, Skip, Reverse, Draw Two, Wild, Wild Draw Four, draw/pass, UNO penalty, scoring, multi-round target)
+- `UnoRulesTest.java` — 41 new tests covering all rule features (deck composition, legal play, Skip, Reverse, Draw Two, Wild, Wild Draw Four, draw/pass, UNO penalty, scoring, multi-round target)
 - `PersistenceTest.java` — 5 tests for database persistence layer
 
-Total: 91 tests, all passing.
+Total: 94 tests, all passing.
 
 ## Limitations
 
 - Wild Draw Four has no challenge mechanism
 - No official UNO stacking rule (Draw Two on Draw Two)
-- Missed UNO penalty only applies to bots, not human players
+- No official UNO challenge mechanism for Wild Draw Four
 - No network/multiplayer support
 - Bot strategy is simple (prefers Draw Two > Skip > Number > Wild)
