@@ -3,6 +3,7 @@ import org.junit.Before;
 import static org.junit.Assert.*;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Scanner;
 
 public class UnoRulesTest {
 
@@ -320,13 +321,14 @@ public class UnoRulesTest {
     }
 
     @Test
-    public void testTurnAdvancesAfterDraw() {
-        // After bot draws a card (no legal card in hand), turn moves to next player
+    public void testHumanPassesAfterDeclinedDrawnCard() {
+        // Human types "draw", receives legal W from empty deck, declines to play it ("n") → pass
         ArrayList<Player> players = new ArrayList<>();
+        players.add(new Player("You", true)); // human player
         players.add(new Player("Bot1", false));
-        players.add(new Player("Bot2", false));
         Deck deck = new Deck(new Random(1)); // no build → draw() returns "W" fallback
-        GameEngine engine = new GameEngine(players, deck, new Random(1), new GameView(true));
+        Scanner scanner = new Scanner("draw\nn\n"); // draw, then decline to play
+        GameEngine engine = new GameEngine(players, deck, new Random(1), new GameView(true, scanner));
         players.get(0).hand.clear();
         players.get(0).hand.add("G3"); // no legal card for R5
         players.get(1).hand.add("Y1");
@@ -335,7 +337,7 @@ public class UnoRulesTest {
         engine.currentPlayer = 0;
         engine.direction = 1;
         engine.takeTurn();
-        assertEquals(1, engine.currentPlayer); // turn passed to Bot2
+        assertEquals(1, engine.currentPlayer); // human passed, turn moved to Bot1
     }
 
     //  UNO CALL AND PENALTY TESTS
@@ -406,7 +408,29 @@ public class UnoRulesTest {
         assertEquals(3, players.get(1).hand.size());
     }
 
-    //  SCORING TESTS 
+    @Test
+    public void testMissedUnoPenaltyAppliesToHuman() {
+        // Human with 1 card should also receive 2 penalty cards if they missed calling UNO
+        ArrayList<Player> players = new ArrayList<>();
+        players.add(new Player("Bot1", false));
+        players.add(new Player("You", true)); // human player
+        Deck deck = new Deck(new Random(1));
+        deck.build();
+        GameEngine engine = new GameEngine(players, deck, new Random(1), new GameView(true));
+        players.get(0).hand.clear();
+        players.get(0).hand.add("R5");
+        players.get(0).hand.add("R3");
+        players.get(1).hand.clear();
+        players.get(1).hand.add("G5"); // human has 1 card — missed UNO
+        engine.upCard = "R7";
+        engine.calledColor = "";
+        engine.currentPlayer = 0;
+        engine.direction = 1;
+        engine.takeTurn(); // Bot1 plays R5 → has 1 card → checkMissedUno fires on human
+        assertEquals(3, players.get(1).hand.size()); // human drew 2 penalty cards
+    }
+
+    //  SCORING TESTS
 
     @Test
     public void testNumberCardScoring() {

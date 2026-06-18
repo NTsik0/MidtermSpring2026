@@ -54,7 +54,7 @@
 ## UNO Call
 
 - One-card state is detected and announced automatically
-- Bots that have one card and fail to call UNO draw 2 penalty cards
+- Any player (human or bot) with one card when another player calls UNO draws 2 penalty cards
 - Human UNO call is announced via output
 
 ## Round Scoring
