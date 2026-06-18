@@ -143,11 +143,9 @@ public class GameEngine {
     private void checkMissedUno() {
         for (int i = 0; i < players.size(); i++) {
             if (i != currentPlayer && players.get(i).hand.size() == 1) {
-                if (!players.get(i).human) {
-                    view.showUnoPenalty(players.get(i).name);
-                    players.get(i).hand.add(deck.draw());
-                    players.get(i).hand.add(deck.draw());
-                }
+                view.showUnoPenalty(players.get(i).name);
+                players.get(i).hand.add(deck.draw());
+                players.get(i).hand.add(deck.draw());
             }
         }
     }
